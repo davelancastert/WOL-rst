@@ -62,7 +62,6 @@ fn main() {
     if args.len() != 3 {
       print_usage(&args, opts);
       return
-
     };
 
     if matches.opt_present("help") {
