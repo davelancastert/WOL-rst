@@ -50,19 +50,16 @@ fn main() {
         
     ];
     
-    let matches = match getopts::getopts(args.tail(), opts) {
-
-        Ok(m) => m,
-
-        Err(f) => { 
-            
-println!("{}", f);
-            os::set_exit_status(1);
-
-            return;
-}
-    };
     
+    let matches = match getopts::getopts(args.tail(), opts) {
+        Ok(m)  => m,
+        Err(e) => {
+            println!("{}", e);
+            os::set_exit_status(1);
+            return
+        }
+    };
+
     if args.len() != 3 {
       print_usage(&args, opts);
       return
