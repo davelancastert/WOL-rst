@@ -49,8 +49,7 @@ fn main() {
         getopts::optopt("b", "bcast", "broadcast address", ""),
         
     ];
-    
-    
+        
     let matches = match getopts::getopts(args.tail(), opts) {
         Ok(m)  => m,
         Err(e) => {
