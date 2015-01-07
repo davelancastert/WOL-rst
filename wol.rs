@@ -54,17 +54,10 @@ fn main() {
 
         Ok(m) => m,
 
-        Err(f) => {
-
-            println!("{}", f);
-
-            os::set_exit_status(1);
-
-            return;
-
-        }
-
-    };
+        Err(f) => { 
+println!("{}", f);os::set_exit_status(1);
+return;
+} };
     
     if args.len() != 3 {
       print_usage(&args, opts);
