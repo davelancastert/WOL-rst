@@ -36,8 +36,8 @@ fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Resul
 }
 
 fn print_usage(args: &Vec<String>, opts: &[OptGroup]) {
-      print!("{}", usage(args[0].as_slice(),opts));
-      return
+      let summary = format!("Usage: {} [options]", args[0].as_slice());
+      print!("{}", usage(summary.as_slice(),opts));
 }
 
 fn main() {
