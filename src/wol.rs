@@ -14,11 +14,11 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     for byte in mac_as_bytes {
         match std::num::from_str_radix::<u8>(byte, 16) {
             Some(b) => payload.push(b),
-            None    => return Err("could not build packet"),
+            None    => return Err("could not fill buffer"),
         };
     }
 
-    for _ in range(0u8, 17) {
+    for _ in range(0u8, 16) {
         match payload.len() {
             6 => packet.push_all(payload.slice(0,6)),
             _ => return Err("invalid buffer length"),
@@ -26,7 +26,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     }
 
     match packet.len() {
-        108 => return Ok(packet),
+        102 => return Ok(packet),
         _   => return Err("invalid packet size"),
     };
 }
@@ -37,7 +37,7 @@ fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Resul
         Err(e) => panic!("could not bind socket: {}", e),
     };
 
-    let result = socket.send_to(packet.slice(0,108),(raddr.as_slice(), 9u16));
+    let result = socket.send_to(packet.slice(0,102),(raddr.as_slice(), 9u16));
         
     return result
 }
