@@ -5,7 +5,7 @@ use std::io::net::ip::{Ipv4Addr, SocketAddr};
 use std::os;
 use getopts::{usage, OptGroup};
 
-fn build_magic_packet(mac: String) -> Vec<u8> {
+fn build_magic_packet2(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet = Vec::from_elem(6, 0xff);
 
     for _ in range(0u8, 17) {
@@ -13,15 +13,16 @@ fn build_magic_packet(mac: String) -> Vec<u8> {
         for byte in mac_as_bytes {
             let val = match std::num::from_str_radix::<u8>(byte, 16) {
                 Some(b) => b,
-                None    => panic!("could not build packet"),
+                None    => return Err("could not build packet"),
             };
             packet.push(val);
         }
     }
 
-    if packet.len() != 108 { panic!("invalid packet size") };
-
-    return packet
+    match packet.len() {
+        108 => { return Ok(packet) },
+        _   => { return Err("invalid packet size") },
+    };
 }
 
 fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::io::IoError> {
@@ -31,7 +32,7 @@ fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Resul
     };
 
     let result = socket.send_to(packet.slice(0,108),(raddr.as_slice(), 9u16));
-
+        
     return result
 }
 
@@ -79,9 +80,11 @@ fn main() {
     };
 
     let laddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: 9 };
-    
-    let magic_packet = build_magic_packet(mac.to_string());
-    println!("Built magic packet for {}", mac);
+
+    let magic_packet = match build_magic_packet2(mac.to_string()) {
+        Ok(p)  => p,
+        Err(e) => panic!("could not generate magic packet: {}", e),
+    };
     
     match send_magic_packet(magic_packet,laddr, raddr) {
         Ok(_)  => println!("Packet sent Ok"),
