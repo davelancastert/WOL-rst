@@ -46,8 +46,7 @@ fn main() {
     let opts = &[
         getopts::optflag("h", "help", "display this help"),
         getopts::optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", ""),
-        getopts::optopt("b", "bcast", "broadcast address", ""),
-        
+        getopts::optopt("b", "bcast", "broadcast address", ""),     
     ];
         
     let matches = match getopts::getopts(args.tail(), opts) {
@@ -60,13 +59,13 @@ fn main() {
     };
 
     if args.len() != 3 {
-      print_usage(&args, opts);
-      return
+        print_usage(&args, opts);
+        return
     };
 
     if matches.opt_present("help") {
-      print_usage(&args, opts);
-      return
+        print_usage(&args, opts);
+        return
     };
 
     let mac = match matches.opt_str("mac") {
