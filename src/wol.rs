@@ -1,16 +1,29 @@
 extern crate getopts;
+extern crate regex;
 
 use std::io::net::udp::UdpSocket;
 use std::io::net::ip::{Ipv4Addr, SocketAddr};
 use std::os;
 use getopts::{usage, OptGroup};
+use regex::Regex;
+
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet  = Vec::from_elem(6, 0xff);
     let mut payload = Vec::new();
     
+    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$"){
+        Ok(exp) => exp,
+        Err(e)  => panic!("{}", e),
+    };
+
+    match valid_mac.is_match(mac.as_slice()) {
+        true => true,
+        _    => return Err("invalid mac address"),
+    };
+
     let mut mac_as_bytes = mac.as_slice().split_str(":");
-    
+
     for byte in mac_as_bytes {
         match std::num::from_str_radix::<u8>(byte, 16) {
             Some(b) => payload.push(b),
