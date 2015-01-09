@@ -6,22 +6,28 @@ use std::os;
 use getopts::{usage, OptGroup};
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
-    let mut packet = Vec::from_elem(6, 0xff);
+    let mut packet  = Vec::from_elem(6, 0xff);
+    let mut payload = Vec::new();
+    
+    let mut mac_as_bytes = mac.as_slice().split_str(":");
+    
+    for byte in mac_as_bytes {
+        match std::num::from_str_radix::<u8>(byte, 16) {
+            Some(b) => payload.push(b),
+            None    => return Err("could not build packet"),
+        };
+    }
 
     for _ in range(0u8, 17) {
-        let mut mac_as_bytes = mac.as_slice().split_str(":");
-        for byte in mac_as_bytes {
-            let val = match std::num::from_str_radix::<u8>(byte, 16) {
-                Some(b) => b,
-                None    => return Err("could not build packet"),
-            };
-            packet.push(val);
-        }
+        match payload.len() {
+            6 => packet.push_all(payload.slice(0,6)),
+            _ => return Err("invalid buffer length"),
+        }; 
     }
 
     match packet.len() {
-        108 => { return Ok(packet) },
-        _   => { return Err("invalid packet size") },
+        108 => return Ok(packet),
+        _   => return Err("invalid packet size"),
     };
 }
 
