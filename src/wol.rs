@@ -9,19 +9,16 @@ use regex::Regex;
 
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
-    let mut packet  = Vec::from_elem(6, 0xff);
-    let mut payload = Vec::new();
-    
-    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$") {
-        Ok(exp) => exp,
-        Err(e)  => panic!("{}", e),
-    };
+    let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
 
     match valid_mac.is_match(mac.as_slice()) {
         true => true,
         _    => return Err("invalid mac address"),
     };
 
+    let mut packet  = Vec::from_elem(6, 0xff);
+    let mut payload = Vec::new();
+    
     let mut mac_as_bytes = mac.as_slice().split_str(":");
 
     for byte in mac_as_bytes {
@@ -45,10 +42,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
 }
 
 fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::io::IoError> {
-    let valid_bcast = match Regex::new("^([0-9]{1,3}.){3}(255)$") {
-        Ok(exp) => exp,
-        Err(e)  => panic!("{}", e),
-    };
+    let valid_bcast = Regex::new("^([0-9]{1,3}.){3}(255)$").unwrap();
 
     match valid_bcast.is_match(raddr.as_slice()) {
         true => true,
