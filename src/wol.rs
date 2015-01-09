@@ -87,7 +87,4 @@ fn main() {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
-}
-
-
-    
+}    
