@@ -12,7 +12,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet  = Vec::from_elem(6, 0xff);
     let mut payload = Vec::new();
     
-    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$"){
+    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$") {
         Ok(exp) => exp,
         Err(e)  => panic!("{}", e),
     };
@@ -45,6 +45,16 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
 }
 
 fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::io::IoError> {
+    let valid_bcast = match Regex::new("^([0-9]{1,3}.){3}(255)$") {
+        Ok(exp) => exp,
+        Err(e)  => panic!("{}", e),
+    };
+
+    match valid_bcast.is_match(raddr.as_slice()) {
+        true => true,
+        _    => panic!("invalid broadcast address"),
+    };
+
     let mut socket = match UdpSocket::bind(laddr) {
         Ok(s)  => s,
         Err(e) => panic!("could not bind socket: {}", e),
