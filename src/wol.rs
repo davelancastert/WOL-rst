@@ -5,7 +5,7 @@ use std::io::net::ip::{Ipv4Addr, SocketAddr};
 use std::os;
 use getopts::{usage, OptGroup};
 
-fn build_magic_packet2(mac: String) -> Result<Vec<u8>, &'static str> {
+fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet = Vec::from_elem(6, 0xff);
 
     for _ in range(0u8, 17) {
@@ -81,7 +81,7 @@ fn main() {
 
     let laddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: 9 };
 
-    let magic_packet = match build_magic_packet2(mac.to_string()) {
+    let magic_packet = match build_magic_packet(mac.to_string()) {
         Ok(p)  => p,
         Err(e) => panic!("could not generate magic packet: {}", e),
     };
