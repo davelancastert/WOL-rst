@@ -16,7 +16,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
         _    => return Err("invalid mac address"),
     };
 
-    let mut packet  = Vec::from_elem(6, 0xff);
+    let mut packet  = vec![0xff, 0xff, 0xff, 0xff,0xff, 0xff];
     let mut payload = Vec::new();
     
     let mut mac_as_bytes = mac.as_slice().split_str(":");
@@ -32,7 +32,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
         match payload.len() {
             6 => packet.push_all(payload.slice(0,6)),
             _ => return Err("invalid buffer length"),
-        }; 
+        };
     }
 
     match packet.len() {
