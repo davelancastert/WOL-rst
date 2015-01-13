@@ -7,7 +7,7 @@ use std::os;
 use getopts::{usage, OptGroup};
 use regex::Regex;
 
-
+#[allow(unstable)]
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
 
@@ -16,7 +16,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
         _    => return Err("invalid mac address"),
     };
 
-    let mut packet  = vec![0xff, 0xff, 0xff, 0xff,0xff, 0xff];
+    let mut packet  = vec![0xff,0xff,0xff,0xff,0xff,0xff];
     let mut payload = Vec::new();
     
     let mut mac_as_bytes = mac.as_slice().split_str(":");
@@ -41,6 +41,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     };
 }
 
+#[allow(unstable)]
 fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::io::IoError> {
     let valid_bcast = Regex::new("^([0-9]{1,3}.){3}(255)$").unwrap();
 
@@ -64,6 +65,7 @@ fn print_usage(args: &Vec<String>, opts: &[OptGroup]) {
       print!("{}", usage(summary.as_slice(),opts));
 }
 
+#[allow(unstable)]
 fn main() {
     let args  = os::args();
    
