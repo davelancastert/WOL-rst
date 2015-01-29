@@ -1,13 +1,14 @@
+#![feature(os,core)]
+
 extern crate getopts;
 extern crate regex;
 
-use std::io::net::udp::UdpSocket;
-use std::io::net::ip::{Ipv4Addr, SocketAddr};
+use std::old_io::net::udp::UdpSocket;
+use std::old_io::net::ip::{Ipv4Addr, SocketAddr};
 use std::os;
 use getopts::{usage, OptGroup};
 use regex::Regex;
 
-#[allow(unstable)]
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
 
@@ -41,8 +42,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     };
 }
 
-#[allow(unstable)]
-fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::io::IoError> {
+fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::old_io::IoError> {
     let valid_bcast = Regex::new("^([0-9]{1,3}.){3}(255)$").unwrap();
 
     match valid_bcast.is_match(raddr.as_slice()) {
@@ -65,7 +65,6 @@ fn print_usage(args: &Vec<String>, opts: &[OptGroup]) {
       print!("{}", usage(summary.as_slice(),opts));
 }
 
-#[allow(unstable)]
 fn main() {
     let args  = os::args();
    
