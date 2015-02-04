@@ -17,7 +17,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
         _    => return Err("invalid mac address"),
     };
 
-    let mut packet  = vec![0xff,0xff,0xff,0xff,0xff,0xff];
+    let mut packet  = vec![0xff; 6];
     let mut payload = Vec::new();
     
     let mac_as_bytes = mac.as_slice().split_str(":");
