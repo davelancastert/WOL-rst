@@ -13,4 +13,4 @@ path = "src/main.rs"
 
 
 getopts = "0.1.4"
-regex = "0.1.11"
+regex = "0.1.13"

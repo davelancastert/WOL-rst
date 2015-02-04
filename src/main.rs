@@ -20,12 +20,12 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet  = vec![0xff,0xff,0xff,0xff,0xff,0xff];
     let mut payload = Vec::new();
     
-    let mut mac_as_bytes = mac.as_slice().split_str(":");
+    let mac_as_bytes = mac.as_slice().split_str(":");
 
     for byte in mac_as_bytes {
         match std::num::from_str_radix::<u8>(byte, 16) {
-            Some(b) => payload.push(b),
-            None    => return Err("could not fill buffer"),
+	    Ok(b)  => payload.push(b),
+	    Err(_) => return Err("could not fill buffer"),
         };
     }
 
