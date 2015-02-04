@@ -53,9 +53,7 @@ fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Resul
         Err(e) => panic!("could not bind socket: {}", e),
     };
 
-    let result = socket.send_to(&packet[0 .. 102],(raddr.as_slice(), 9u16));  
- 
-    return result
+    socket.send_to(&packet[0 .. 102],(raddr.as_slice(), 9u16))
 }
 
 fn print_usage(args: &Vec<String>, opts: &[OptGroup]) {
