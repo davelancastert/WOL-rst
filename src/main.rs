@@ -29,12 +29,12 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
         };
     }
 
-    for _ in 0..16 {
-        match payload.len() {
-            6 => packet.push_all(&payload[0 .. 6]),
-            _ => return Err("invalid buffer length"),
-        };
-    }
+    match payload.len() {
+        6 => { 
+            for _ in 0..16 { packet.push_all(&payload[0..6]) }
+        },
+        _ => return Err("invalid buffer length"),
+    };
 
     match packet.len() {
         102 => return Ok(packet),
