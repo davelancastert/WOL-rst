@@ -6,7 +6,7 @@ extern crate regex;
 use std::old_io::net::udp::UdpSocket;
 use std::old_io::net::ip::{Ipv4Addr, SocketAddr};
 use std::os;
-use getopts::{usage, OptGroup};
+use getopts::Options;
 use regex::Regex;
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
@@ -58,21 +58,21 @@ fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Resul
     socket.send_to(&packet[0..102],(raddr.as_slice(), 9u16))
 }
 
-fn print_usage(args: &Vec<String>, opts: &[OptGroup]) {
+fn print_usage(args: &Vec<String>, opts: Options) {
       let summary = format!("Usage: {} [options]", args[0].as_slice());
-      print!("{}", usage(summary.as_slice(),opts));
+      print!("{}", opts.usage(summary.as_slice()));
 }
 
 fn main() {
     let args  = os::args();
    
-    let opts = &[
-        getopts::optflag("h", "help", "display this help"),
-        getopts::optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", ""),
-        getopts::optopt("b", "bcast", "broadcast address", ""),     
-    ];
+    let mut opts = Options::new();
         
-    let matches = match getopts::getopts(args.tail(), opts) {
+    opts.optflag("h", "help", "display this help");
+    opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "");
+    opts.optopt("b", "bcast", "broadcast address", "");
+        
+    let matches = match opts.parse(args.tail()) {
         Ok(m)  => m,
         Err(e) => {
             println!("{}", e);
