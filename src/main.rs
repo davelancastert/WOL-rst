@@ -141,7 +141,7 @@ fn main() {
         Err(e) => panic!("could not convert address to Ippv4Addr: {:?}", e),
     };
 
-    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),0);
+    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
     let raddr = SocketAddrV4::new(bcast, 9);
 
     let magic_packet = match build_magic_packet(mac) {
