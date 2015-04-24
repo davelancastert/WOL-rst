@@ -118,24 +118,25 @@ fn main() {
         None    => panic!("no MAC address provided"),
     };
 
-    let raddr_string = match matches.opt_str("bcast") {
+    let bcast_string = match matches.opt_str("bcast") {
         Some(b) => b,
         None    => panic!("no bcast address provided"),
     };
 
-    let raddr: Ipv4Addr = match raddr_string.parse() {
+    let bcast: Ipv4Addr = match bcast_string.parse() {
         Ok(r)  => r,
-        Err(e) => panic!("could not convert host to Ippv4Addr: {:?}", e),
+        Err(e) => panic!("could not convert address to Ippv4Addr: {:?}", e),
     };
 
-    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),9 );
+    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),9);
+    let raddr = SocketAddrV4::new(bcast, 9);
 
     let magic_packet = match build_magic_packet(mac) {
         Ok(p)  => p,
         Err(e) => panic!("could not generate magic packet: {}", e),
     };
     
-    match send_magic_packet(magic_packet,laddr,SocketAddrV4::new(raddr, 9)) {
+    match send_magic_packet(magic_packet,laddr,raddr) {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
