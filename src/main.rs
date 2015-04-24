@@ -1,18 +1,16 @@
-#![feature(io,os,core,collections)]
-
 extern crate getopts;
 extern crate regex;
 
-use std::old_io::net::udp::UdpSocket;
-use std::old_io::net::ip::{Ipv4Addr, SocketAddr};
-use std::os;
+use std::net::{ UdpSocket, SocketAddrV4, Ipv4Addr };
+use std::env;
 use getopts::Options;
 use regex::Regex;
+use std::error::Error;
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
 
-    match valid_mac.is_match(mac.as_slice()) {
+    match valid_mac.is_match(&mac) {
         true => true,
         _    => return Err("invalid mac address"),
     };
@@ -20,74 +18,68 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     let mut packet  = vec![0xff; 6];
     let mut payload = Vec::new();
     
-    let mac_as_bytes = mac.as_slice().split_str(":");
+    let mac_as_bytes: Vec<&str> = mac.split(":").collect();
 
     for byte in mac_as_bytes {
-        match std::num::from_str_radix::<u8>(byte, 16) {
+        match u8::from_str_radix(byte, 16) {
 	    Ok(b)  => payload.push(b),
 	    Err(_) => return Err("could not fill buffer"),
         };
     }
 
     match payload.len() {
-        6 => for _ in 0..16 { 
-                 packet.push_all(&payload[0..6])
+        6 => for _ in 0..16 {
+                 for elem in &payload {
+                     packet.push(*elem); 
+                 };
              },
         _ => return Err("invalid buffer length"),
     };
-
+    
     match packet.len() {
         102 => return Ok(packet),
         _   => return Err("invalid packet size"),
     };
 }
 
-fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddr, raddr: String) -> Result<(), std::old_io::IoError> {
-    let valid_bcast = Regex::new("^([0-9]{1,3}.){3}(255)$").unwrap();
+fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddrV4, raddr: SocketAddrV4) -> Result<bool, Box<Error>> {
+    let socket = try!(UdpSocket::bind(laddr));
 
-    match valid_bcast.is_match(raddr.as_slice()) {
-        true => true,
-        _    => panic!("invalid broadcast address"),
-    };
+    try!(socket.send_to(&packet[0..102], raddr));
 
-    let mut socket = match UdpSocket::bind(laddr) {
-        Ok(s)  => s,
-        Err(e) => panic!("could not bind socket: {}", e),
-    };
-
-    socket.send_to(&packet[0..102],(raddr.as_slice(), 9u16))
+    Ok(true)
 }
 
-fn print_usage(args: &Vec<String>, opts: Options) {
-      let summary = format!("Usage: {} [options]", args[0].as_slice());
-      print!("{}", opts.usage(summary.as_slice()));
+fn print_usage(opts: Options) {
+    let summary = format!("Usage: [options]");
+    print!("{}", opts.usage(&summary));
 }
 
-fn main() {
-    let args  = os::args();
-   
+fn main() {   
+    let args  = env::args();
+
     let mut opts = Options::new();
         
     opts.optflag("h", "help", "display this help");
     opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "");
     opts.optopt("b", "bcast", "broadcast address", "");
+
+    if args.len() != 3 {
+        print_usage(opts);
+        return
+    };
         
-    let matches = match opts.parse(args.tail()) {
+    let matches = match opts.parse(args) {
         Ok(m)  => m,
         Err(e) => {
             println!("{}", e);
-            os::set_exit_status(1);
             return
         }
     };
 
-    if args.len() != 3 {
-        print_usage(&args, opts);
-        return
-    };
 
     if matches.opt_present("help") {
-        print_usage(&args, opts);
+        print_usage(opts);
         return
     };
 
@@ -96,19 +88,24 @@ fn main() {
         None    => panic!("no MAC address provided"),
     };
 
-    let raddr = match matches.opt_str("bcast") {
+    let raddr_string = match matches.opt_str("bcast") {
         Some(b) => b,
         None    => panic!("no bcast address provided"),
     };
 
-    let laddr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: 9 };
+    let raddr: Ipv4Addr = match raddr_string.parse() {
+        Ok(r)  => r,
+        Err(e) =>panic!("could not convert host to Ippv4Addr: {:?}", e),
+    };
 
-    let magic_packet = match build_magic_packet(mac.to_string()) {
+    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),9 );
+
+    let magic_packet = match build_magic_packet(mac) {
         Ok(p)  => p,
         Err(e) => panic!("could not generate magic packet: {}", e),
     };
     
-    match send_magic_packet(magic_packet,laddr, raddr) {
+    match send_magic_packet(magic_packet,laddr,SocketAddrV4::new(raddr, 9)) {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
