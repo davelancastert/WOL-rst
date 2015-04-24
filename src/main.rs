@@ -7,12 +7,19 @@ use getopts::Options;
 use regex::Regex;
 use std::error::Error;
 
-fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
+fn valid_mac(mac: &String) -> bool {
     let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
 
     match valid_mac.is_match(&mac) {
-        true => true,
-        _    => return Err("invalid mac address"),
+        true => return true,
+        _    => return false,
+    };
+}
+
+fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
+    match valid_mac(&mac) {
+        true  => true,
+        false => return Err("invalid mac address"),
     };
 
     let mut packet  = vec![0xff; 6];
