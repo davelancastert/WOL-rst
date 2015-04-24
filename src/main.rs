@@ -77,7 +77,6 @@ fn main() {
         }
     };
 
-
     if matches.opt_present("help") {
         print_usage(opts);
         return
