@@ -36,7 +36,7 @@ mod test {
 
     #[test]
     fn sends_packet_loopback() {
-        let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
+        let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
         let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
         assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
     }  
@@ -141,7 +141,7 @@ fn main() {
         Err(e) => panic!("could not convert address to Ippv4Addr: {:?}", e),
     };
 
-    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),9);
+    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),0);
     let raddr = SocketAddrV4::new(bcast, 9);
 
     let magic_packet = match build_magic_packet(mac) {
