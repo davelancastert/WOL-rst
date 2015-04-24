@@ -9,24 +9,24 @@ use getopts::Options;
 use regex::Regex;
 use std::error::Error;
 
-#[test]
-fn passes_valid_mac() {
-    assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
-}
+#[cfg(test)]
+mod test {
+    use super::{ valid_mac, build_magic_packet };
 
-#[test]
-fn rejects_invalid_mac() {
-    assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
-}
+    #[test]
+    fn passes_valid_mac() {
+        assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
+    }  
 
-#[test]
-fn builds_magic_packet() {
-    assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
-}
+    #[test]
+    fn rejects_invalid_mac() {
+        assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
+    }
 
-#[test]
-fn prints_usage() {
-    print_usage(Options::new());       
+    #[test]
+    fn builds_magic_packet() {
+        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
+    }  
 }
 
 fn valid_mac(mac: &String) -> bool {
