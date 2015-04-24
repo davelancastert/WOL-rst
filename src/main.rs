@@ -11,7 +11,8 @@ use std::error::Error;
 
 #[cfg(test)]
 mod test {
-    use super::{ valid_mac, build_magic_packet };
+    use super::{ valid_mac, build_magic_packet, send_magic_packet };
+    use std::net::{ SocketAddrV4, Ipv4Addr };
 
     #[test]
     fn passes_valid_mac() {
@@ -31,6 +32,13 @@ mod test {
     fn builds_magic_packet() {
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().is_empty(), false);
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
+    }
+
+    #[test]
+    fn sends_packet_loopback() {
+        let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
+        let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
+        assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
     }  
 }
 
