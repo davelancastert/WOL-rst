@@ -16,21 +16,26 @@ mod test {
     #[test]
     fn passes_valid_mac() {
         assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
+        assert_eq!(valid_mac(&"FF:FF:FF:FF:FF:FF".to_string()), true);
     }  
 
     #[test]
     fn rejects_invalid_mac() {
+        assert_eq!(valid_mac(&"".to_string()), false);
+        assert_eq!(valid_mac(&":::::".to_string()), false);
         assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
+        assert_eq!(valid_mac(&"zz:zz:zz:zz:zz:zz".to_string()), false);
     }
 
     #[test]
     fn builds_magic_packet() {
+        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().is_empty(), false);
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
     }  
 }
 
 fn valid_mac(mac: &String) -> bool {
-    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$") {
+    let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
         Ok(r)  => r,
         Err(e) => panic!("could not build regular expression: {}", e),
     };
