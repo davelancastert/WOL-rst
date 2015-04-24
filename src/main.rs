@@ -15,13 +15,13 @@ mod test {
     use std::net::{ SocketAddrV4, Ipv4Addr };
 
     #[test]
-    fn passes_valid_mac() {
+    fn true_for_valid_mac() {
         assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
         assert_eq!(valid_mac(&"FF:FF:FF:FF:FF:FF".to_string()), true);
     }  
 
     #[test]
-    fn rejects_invalid_mac() {
+    fn false_for_invalid_mac() {
         assert_eq!(valid_mac(&"".to_string()), false);
         assert_eq!(valid_mac(&":::::".to_string()), false);
         assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
@@ -29,13 +29,13 @@ mod test {
     }
 
     #[test]
-    fn builds_magic_packet() {
+    fn can_build_magic_packet() {
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().is_empty(), false);
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
     }
 
     #[test]
-    fn sends_packet_loopback() {
+    fn can_send_packet_loopback() {
         let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
         let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
         assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
