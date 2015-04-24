@@ -8,7 +8,10 @@ use regex::Regex;
 use std::error::Error;
 
 fn valid_mac(mac: &String) -> bool {
-    let valid_mac = Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$").unwrap();
+    let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$") {
+        Ok(r)  => r,
+        Err(e) => panic!("could not build regular expression: {}", e),
+    };
 
     match valid_mac.is_match(&mac) {
         true => return true,
@@ -17,9 +20,8 @@ fn valid_mac(mac: &String) -> bool {
 }
 
 fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
-    match valid_mac(&mac) {
-        true  => true,
-        false => return Err("invalid mac address"),
+    if valid_mac(&mac) == false { 
+        return Err("invalid mac address") 
     };
 
     let mut packet  = vec![0xff; 6];
