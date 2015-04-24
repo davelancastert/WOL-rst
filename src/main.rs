@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code))] 
+
 extern crate getopts;
 extern crate regex;
 
@@ -6,6 +8,26 @@ use std::env;
 use getopts::Options;
 use regex::Regex;
 use std::error::Error;
+
+#[test]
+fn passes_valid_mac() {
+    assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
+}
+
+#[test]
+fn rejects_invalid_mac() {
+    assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
+}
+
+#[test]
+fn builds_magic_packet() {
+    assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
+}
+
+#[test]
+fn prints_usage() {
+    print_usage(Options::new());       
+}
 
 fn valid_mac(mac: &String) -> bool {
     let valid_mac = match Regex::new("^([0-9A-Za-z]{2}:){5}([0-9A-Za-z]{2})$") {
@@ -103,7 +125,7 @@ fn main() {
 
     let raddr: Ipv4Addr = match raddr_string.parse() {
         Ok(r)  => r,
-        Err(e) =>panic!("could not convert host to Ippv4Addr: {:?}", e),
+        Err(e) => panic!("could not convert host to Ippv4Addr: {:?}", e),
     };
 
     let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0u8, 0u8, 0u8),9 );
