@@ -74,7 +74,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
 
     match payload.len() {
         6 => for _ in 0..16 {
-                 for elem in &payload {
+                 for elem in payload.iter() {
                      packet.push(*elem); 
                  };
              },
