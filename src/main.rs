@@ -32,6 +32,7 @@ mod test {
     fn can_build_magic_packet() {
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().is_empty(), false);
         assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
+        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap(), vec![255; 102]);
     }
 
     #[test]
