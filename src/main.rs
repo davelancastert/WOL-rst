@@ -9,6 +9,9 @@ use getopts::Options;
 use regex::Regex;
 use std::error::Error;
 
+#[derive(Debug)]
+enum WolError { InvalidMacAddress, FailedBufferFill, InvalidBufferLength, InvalidPacketSize }
+ 
 #[cfg(test)]
 mod test {
     use super::{ valid_mac, build_magic_packet, send_magic_packet };
@@ -40,7 +43,7 @@ mod test {
         let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
         let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
         assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
-    }  
+    }
 }
 
 fn valid_mac(mac: &String) -> bool {
@@ -55,9 +58,9 @@ fn valid_mac(mac: &String) -> bool {
     };
 }
 
-fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
+fn build_magic_packet(mac: String) -> Result<Vec<u8>, WolError> {
     if valid_mac(&mac) == false { 
-        return Err("invalid mac address") 
+        return Err(WolError::InvalidMacAddress) 
     };
 
     let mut packet  = vec![0xff; 6];
@@ -68,7 +71,7 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
     for byte in mac_as_bytes {
         match u8::from_str_radix(byte, 16) {
 	    Ok(b)  => payload.push(b),
-	    Err(_) => return Err("could not fill buffer"),
+	    Err(_) => return Err(WolError::FailedBufferFill),
         };
     }
 
@@ -78,12 +81,12 @@ fn build_magic_packet(mac: String) -> Result<Vec<u8>, &'static str> {
                      packet.push(*elem); 
                  };
              },
-        _ => return Err("invalid buffer length"),
+        _ => return Err(WolError::InvalidBufferLength),
     };
     
     match packet.len() {
         102 => return Ok(packet),
-        _   => return Err("invalid packet size"),
+        _   => return Err(WolError::InvalidPacketSize),
     };
 }
 
@@ -147,7 +150,7 @@ fn main() {
 
     let magic_packet = match build_magic_packet(mac) {
         Ok(p)  => p,
-        Err(e) => panic!("could not generate magic packet: {}", e),
+        Err(e) => panic!("could not generate magic packet: {:?}", e),
     };
     
     match send_magic_packet(magic_packet,laddr,raddr) {
