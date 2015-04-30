@@ -49,11 +49,8 @@ mod test {
 }
 
 #[derive(Debug)]
-enum WolError { InvalidMacAddress, InvalidBufferLength, InvalidPacketSize }
+enum WolError { InvalidMacAddress, InvalidBufferLength, InvalidPacketSize, MacValidationFailed, MacConversionFailed }
 
-#[derive(Debug)]
-enum MacError { ValidationFailed, BytesConversionFailed }
- 
 struct Mac {
     address: String
 }
@@ -62,10 +59,10 @@ impl Mac {
     fn new(address: String) -> Mac {
         Mac { address: address }
     }
-    fn is_valid(&self) -> Result<bool, MacError> {
+    fn is_valid(&self) -> Result<bool, WolError> {
         let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
             Ok(r)  => r,
-            Err(_) => return Err(MacError::ValidationFailed),
+            Err(_) => return Err(WolError::MacValidationFailed),
         };
 
         match valid_mac.is_match(&self.address) {
@@ -73,14 +70,14 @@ impl Mac {
             _    => return Ok(false),
         };
     }
-    fn as_bytes(&self) -> Result<Vec<u8>, MacError> {
+    fn as_bytes(&self) -> Result<Vec<u8>, WolError> {
         let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
         let mut result: Vec<u8> = Vec::new();
 	
         for byte in mac_as_bytes {
               match u8::from_str_radix(byte, 16) {
                   Ok(b)  => result.push(b),
-                  Err(_) => return Err(MacError::BytesConversionFailed)
+                  Err(_) => return Err(WolError::MacConversionFailed)
               }
         }
         return Ok(result);
@@ -91,14 +88,14 @@ fn build_magic_packet(mac: Mac) -> Result<Vec<u8>, WolError> {
     match mac.is_valid() {
         Ok(true)  => true,
         Ok(false) => return Err(WolError::InvalidMacAddress),
-        Err(e)    => panic!("{:?}", e) 
+        Err(e)    => return Err(e) 
     };
 
     let mut packet  = vec![0xff; 6];
     
     let payload = match mac.as_bytes() {
         Ok(p)  => p,
-        Err(e) => panic!("{:?}", e)
+        Err(e) => return Err(e)
     };
 
     match payload.len() {
