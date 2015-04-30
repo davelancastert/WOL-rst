@@ -9,33 +9,30 @@ use getopts::Options;
 use regex::Regex;
 use std::error::Error;
 
-#[derive(Debug)]
-enum WolError { InvalidMacAddress, FailedBufferFill, InvalidBufferLength, InvalidPacketSize }
- 
 #[cfg(test)]
 mod test {
-    use super::{ valid_mac, build_magic_packet, send_magic_packet };
+    use super::{ build_magic_packet, send_magic_packet, Mac };
     use std::net::{ SocketAddrV4, Ipv4Addr };
 
     #[test]
     fn true_for_valid_mac() {
-        assert_eq!(valid_mac(&"ff:ff:ff:ff:ff:ff".to_string()), true);
-        assert_eq!(valid_mac(&"FF:FF:FF:FF:FF:FF".to_string()), true);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid(), true);
+        assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF".to_string()).is_valid(), true);
     }  
 
     #[test]
     fn false_for_invalid_mac() {
-        assert_eq!(valid_mac(&"".to_string()), false);
-        assert_eq!(valid_mac(&":::::".to_string()), false);
-        assert_eq!(valid_mac(&"ff:ff:ff:ff:ff".to_string()), false);
-        assert_eq!(valid_mac(&"zz:zz:zz:zz:zz:zz".to_string()), false);
+        assert_eq!(Mac::new("".to_string()).is_valid(), false);
+        assert_eq!(Mac::new(":::::".to_string()).is_valid(), false);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff".to_string()).is_valid(), false);
+        assert_eq!(Mac::new("zz:zz:zz:zz:zz:zz".to_string()).is_valid(), false);
     }
 
     #[test]
     fn can_build_magic_packet() {
-        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().is_empty(), false);
-        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap().len(), 102);
-        assert_eq!(build_magic_packet("ff:ff:ff:ff:ff:ff".to_string()).unwrap(), vec![255; 102]);
+        assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff".to_string())).unwrap().is_empty(), false);
+        assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff".to_string())).unwrap().len(), 102);
+        assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff".to_string())).unwrap(), vec![255; 102]);
     }
 
     #[test]
@@ -44,36 +41,56 @@ mod test {
         let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
         assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
     }
+    #[test]
+    fn struct_tests() {
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid(), true);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).as_bytes(), vec![255; 6]);
+    }
 }
 
-fn valid_mac(mac: &String) -> bool {
-    let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
-        Ok(r)  => r,
-        Err(e) => panic!("could not build regular expression: {}", e),
-    };
-
-    match valid_mac.is_match(&mac) {
-        true => return true,
-        _    => return false,
-    };
+#[derive(Debug)]
+enum WolError { InvalidMacAddress, InvalidBufferLength, InvalidPacketSize }
+ 
+struct Mac {
+    address: String
 }
 
-fn build_magic_packet(mac: String) -> Result<Vec<u8>, WolError> {
-    if valid_mac(&mac) == false { 
+impl Mac {
+    fn new(address: String) -> Mac {
+        Mac { address: address }
+    }
+    fn is_valid(&self) -> bool {
+        let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
+            Ok(r)  => r,
+            Err(e) => panic!("could not build regular expression: {}", e),
+        };
+
+        match valid_mac.is_match(&self.address) {
+            true => return true,
+            _    => return false,
+        };
+    }
+    fn as_bytes(&self) -> Vec<u8> {
+        let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
+        let mut result: Vec<u8> = Vec::new();
+	
+        for byte in mac_as_bytes {
+              match u8::from_str_radix(byte, 16) {
+                  Ok(b) => result.push(b),
+                  Err(_) => panic!("str radix conversion failed")
+              }
+        }
+        return result;
+    }   
+}
+
+fn build_magic_packet(mac: Mac) -> Result<Vec<u8>, WolError> {
+    if mac.is_valid() == false { 
         return Err(WolError::InvalidMacAddress) 
     };
 
     let mut packet  = vec![0xff; 6];
-    let mut payload = Vec::new();
-    
-    let mac_as_bytes: Vec<&str> = mac.split(":").collect();
-
-    for byte in mac_as_bytes {
-        match u8::from_str_radix(byte, 16) {
-	    Ok(b)  => payload.push(b),
-	    Err(_) => return Err(WolError::FailedBufferFill),
-        };
-    }
+    let payload = mac.as_bytes();
 
     match payload.len() {
         6 => for _ in 0..16 {
@@ -103,7 +120,7 @@ fn print_usage(opts: Options) {
     print!("{}", opts.usage(&summary));
 }
 
-fn main() {   
+fn main() {
     let args  = env::args();
 
     let mut opts = Options::new();
@@ -131,7 +148,7 @@ fn main() {
     };
 
     let mac = match matches.opt_str("mac") {
-        Some(m) => m,
+        Some(m) => Mac::new(m),
         None    => panic!("no MAC address provided"),
     };
 
