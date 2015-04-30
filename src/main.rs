@@ -16,16 +16,16 @@ mod test {
 
     #[test]
     fn true_for_valid_mac() {
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid(), true);
-        assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF".to_string()).is_valid(), true);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid().unwrap(), true);
+        assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF".to_string()).is_valid().unwrap(), true);
     }  
 
     #[test]
     fn false_for_invalid_mac() {
-        assert_eq!(Mac::new("".to_string()).is_valid(), false);
-        assert_eq!(Mac::new(":::::".to_string()).is_valid(), false);
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff".to_string()).is_valid(), false);
-        assert_eq!(Mac::new("zz:zz:zz:zz:zz:zz".to_string()).is_valid(), false);
+        assert_eq!(Mac::new("".to_string()).is_valid().unwrap(), false);
+        assert_eq!(Mac::new(":::::".to_string()).is_valid().unwrap(), false);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff".to_string()).is_valid().unwrap(), false);
+        assert_eq!(Mac::new("zz:zz:zz:zz:zz:zz".to_string()).is_valid().unwrap(), false);
     }
 
     #[test]
@@ -43,13 +43,16 @@ mod test {
     }
     #[test]
     fn struct_tests() {
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid(), true);
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).as_bytes(), vec![255; 6]);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid().unwrap(), true);
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).as_bytes().unwrap(), vec![255; 6]);
     }
 }
 
 #[derive(Debug)]
 enum WolError { InvalidMacAddress, InvalidBufferLength, InvalidPacketSize }
+
+#[derive(Debug)]
+enum MacError { ValidationFailed, BytesConversionFailed }
  
 struct Mac {
     address: String
@@ -59,38 +62,44 @@ impl Mac {
     fn new(address: String) -> Mac {
         Mac { address: address }
     }
-    fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> Result<bool, MacError> {
         let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
             Ok(r)  => r,
-            Err(e) => panic!("could not build regular expression: {}", e),
+            Err(_) => return Err(MacError::ValidationFailed),
         };
 
         match valid_mac.is_match(&self.address) {
-            true => return true,
-            _    => return false,
+            true => return Ok(true),
+            _    => return Ok(false),
         };
     }
-    fn as_bytes(&self) -> Vec<u8> {
+    fn as_bytes(&self) -> Result<Vec<u8>, MacError> {
         let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
         let mut result: Vec<u8> = Vec::new();
 	
         for byte in mac_as_bytes {
               match u8::from_str_radix(byte, 16) {
-                  Ok(b) => result.push(b),
-                  Err(_) => panic!("str radix conversion failed")
+                  Ok(b)  => result.push(b),
+                  Err(_) => return Err(MacError::BytesConversionFailed)
               }
         }
-        return result;
+        return Ok(result);
     }   
 }
 
 fn build_magic_packet(mac: Mac) -> Result<Vec<u8>, WolError> {
-    if mac.is_valid() == false { 
-        return Err(WolError::InvalidMacAddress) 
+    match mac.is_valid() {
+        Ok(true)  => true,
+        Ok(false) => return Err(WolError::InvalidMacAddress),
+        Err(e)    => panic!("{:?}", e) 
     };
 
     let mut packet  = vec![0xff; 6];
-    let payload = mac.as_bytes();
+    
+    let payload = match mac.as_bytes() {
+        Ok(p)  => p,
+        Err(e) => panic!("{:?}", e)
+    };
 
     match payload.len() {
         6 => for _ in 0..16 {
