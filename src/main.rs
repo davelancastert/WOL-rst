@@ -15,6 +15,12 @@ mod test {
     use std::net::{ SocketAddrV4, Ipv4Addr };
 
     #[test]
+    fn mac_struct_tests() {
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).address, "ff:ff:ff:ff:ff:ff".to_string());
+        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).as_bytes().unwrap(), vec![255; 6]);
+    }
+    
+    #[test]
     fn true_for_valid_mac() {
         assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid().unwrap(), true);
         assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF".to_string()).is_valid().unwrap(), true);
@@ -40,11 +46,6 @@ mod test {
         let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
         let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
         assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
-    }
-    #[test]
-    fn struct_tests() {
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).is_valid().unwrap(), true);
-        assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff".to_string()).as_bytes().unwrap(), vec![255; 6]);
     }
 }
 
