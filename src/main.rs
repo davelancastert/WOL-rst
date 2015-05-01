@@ -74,7 +74,8 @@ impl Mac {
         for byte in self.address.split(":").collect::<Vec<&str>>() {
               result.push(try!(u8::from_str_radix(byte,16)))
         }
-        return Ok(result);
+        
+        Ok(result)
     }   
 }
 
