@@ -59,26 +59,20 @@ impl Mac {
     fn new(address: String) -> Mac {
         Mac { address: address }
     }
-    fn is_valid(&self) -> Result<bool, WolError> {
-        let valid_mac = match Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$") {
-            Ok(r)  => r,
-            Err(_) => return Err(WolError::MacValidationFailed),
-        };
+    fn is_valid(&self) -> Result<bool, regex::Error> {
+        let valid_mac = try!(Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"));
 
         match valid_mac.is_match(&self.address) {
             true => return Ok(true),
             _    => return Ok(false),
         };
     }
-    fn as_bytes(&self) -> Result<Vec<u8>, WolError> {
+    fn as_bytes(&self) -> Result<Vec<u8>, std::num::ParseIntError> {
         let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
         let mut result: Vec<u8> = Vec::new();
 	
         for byte in mac_as_bytes {
-              match u8::from_str_radix(byte, 16) {
-                  Ok(b)  => result.push(b),
-                  Err(_) => return Err(WolError::MacConversionFailed)
-              }
+              result.push(try!(u8::from_str_radix(byte,16)))
         }
         return Ok(result);
     }   
@@ -88,14 +82,14 @@ fn build_magic_packet(mac: Mac) -> Result<Vec<u8>, WolError> {
     match mac.is_valid() {
         Ok(true)  => true,
         Ok(false) => return Err(WolError::InvalidMacAddress),
-        Err(e)    => return Err(e) 
+        Err(_)    => return Err(WolError::MacValidationFailed) 
     };
 
     let mut packet  = vec![0xff; 6];
     
     let payload = match mac.as_bytes() {
         Ok(p)  => p,
-        Err(e) => return Err(e)
+        Err(_) => return Err(WolError::MacConversionFailed)
     };
 
     match payload.len() {
