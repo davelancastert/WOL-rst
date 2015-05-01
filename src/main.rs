@@ -68,10 +68,11 @@ impl Mac {
         };
     }
     fn as_bytes(&self) -> Result<Vec<u8>, std::num::ParseIntError> {
-        let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
+        //let mac_as_bytes: Vec<&str> = self.address.split(":").collect();
         let mut result: Vec<u8> = Vec::new();
 	
-        for byte in mac_as_bytes {
+        //for byte in mac_as_bytes {
+        for byte in self.address.split(":").collect::<Vec<&str>>() {
               result.push(try!(u8::from_str_radix(byte,16)))
         }
         return Ok(result);
