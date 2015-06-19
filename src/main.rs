@@ -40,16 +40,16 @@ mod wol {
 
         #[test]
         fn can_build_magic_packet() {
-            assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().is_empty(), false);
-            assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().len(), 102);
-            assert_eq!(build_magic_packet(Mac::new("ff:ff:ff:ff:ff:ff")).unwrap(), vec![255; 102]);
+            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().is_empty(), false);
+            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().len(), 102);
+            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap(), vec![255; 102]);
         }  
 
         #[test]
         fn can_send_packet_loopback() {
             let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
             let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
-            assert_eq!(send_magic_packet(vec![0xff; 102], laddr, raddr).unwrap(), true);
+            assert_eq!(send_magic_packet(&vec![0xff; 102], &laddr, &raddr).unwrap(), true);
         }  
     }
 
@@ -85,7 +85,7 @@ mod wol {
         }   
     }
 
-    pub fn build_magic_packet(mac: Mac) -> Result<Vec<u8>, WolError> {
+    pub fn build_magic_packet(mac: &Mac) -> Result<Vec<u8>, WolError> {
         match mac.is_valid() {
             Ok(true)  => true,
             Ok(false) => return Err(WolError::InvalidMacAddress),
@@ -112,7 +112,7 @@ mod wol {
         };
     }
 
-    pub fn send_magic_packet(packet: Vec<u8>, laddr: SocketAddrV4, raddr: SocketAddrV4) -> Result<bool, Box<Error>> {
+    pub fn send_magic_packet(packet: &[u8], laddr: &SocketAddrV4, raddr: &SocketAddrV4) -> Result<bool, Box<Error>> {
         let socket = try!(UdpSocket::bind(laddr));
 
         try!(socket.send_to(&packet[0..102], raddr));
@@ -155,8 +155,8 @@ fn main() {
     };
 
     let bcast_string = match matches.opt_str("bcast") {
-        Some(b) => b,
-        None    => panic!("no bcast address provided"),
+        Some(b)  => b,
+        None     => panic!("no bcast address provided"),
     };
 
     let bcast: Ipv4Addr = match bcast_string.parse() {
@@ -167,12 +167,12 @@ fn main() {
     let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
     let raddr = SocketAddrV4::new(bcast, 9);
 
-    let magic_packet = match wol::build_magic_packet(mac) {
+    let magic_packet = match wol::build_magic_packet(&mac) {
         Ok(p)  => p,
         Err(e) => panic!("could not generate magic packet: {:?}", e),
     };
     
-    match wol::send_magic_packet(magic_packet,laddr,raddr) {
+    match wol::send_magic_packet(&magic_packet,&laddr,&raddr) {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
