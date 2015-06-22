@@ -121,32 +121,29 @@ mod wol {
     }
 }
 
-fn print_usage(opts: &Options) {
-    let summary = format!("Usage: [options]");
-    print!("{}", opts.usage(&summary));
-}
-
 fn main() {
     let args     = env::args();
     let mut opts = Options::new();
-        
+ 
     opts.optflag("h", "help", "display this help");
     opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "");
     opts.optopt("b", "bcast", "broadcast address", "");
 
+    let print_usage = || print!("{}", opts.usage("Usage: [options]"));
+    
     if args.len() != 3 {
-        print_usage(&opts);
+        print_usage();
  	return
     };
         
     let matches = match opts.parse(args) {
-       Ok(m)  => m,
-       Err(e) => panic!("could not parse arguments: {}", e),
+        Ok(m)  => m,
+        Err(e) => panic!("could not parse arguments: {}", e),
     };
-    
+
     if matches.opt_present("help") {
-        print_usage(&opts);
-	return
+        print_usage();
+        return
     };
 
     let mac = match matches.opt_str("mac") {
