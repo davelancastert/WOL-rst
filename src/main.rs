@@ -78,7 +78,7 @@ mod wol {
             let mut result: Vec<u8> = Vec::new();
 	
             for byte in self.address.split(":").collect::<Vec<&str>>() {
-                result.push(try!(u8::from_str_radix(byte,16)))
+                result.push(try!(u8::from_str_radix(byte, 16)))
             }  
         
             Ok(result)
@@ -122,21 +122,21 @@ mod wol {
 }
 
 fn main() {
-    let args     = env::args();
-    let mut opts = Options::new();
- 
-    opts.optflag("h", "help", "display this help");
-    opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "");
-    opts.optopt("b", "bcast", "broadcast address", "");
+    let args: Vec<String> = env::args().collect();
+    let mut opts: Options = Options::new();
 
-    let print_usage = || print!("{}", opts.usage("Usage: [options]"));
+    opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "")
+        .optopt("b", "bcast", "broadcast address", "")
+        .optflag("h", "help", "display this help");
+
+    let print_usage = || print!("{}", opts.usage(&format!("Usage: {} [options]", args[0])));
     
     if args.len() != 3 {
         print_usage();
  	return
     };
-        
-    let matches = match opts.parse(args) {
+    
+    let matches = match opts.parse(&args[1..]) {
         Ok(m)  => m,
         Err(e) => panic!("could not parse arguments: {}", e),
     };
@@ -148,18 +148,13 @@ fn main() {
 
     let mac = match matches.opt_str("mac") {
         Some(m) => wol::Mac::new(&m),
-        None    => panic!("no MAC address provided"),
+        None    => panic!("mac address required"),
     };
 
-    let bcast_string = match matches.opt_str("bcast") {
-        Some(b)  => b,
-        None     => panic!("no bcast address provided"),
-    };
-
-    let bcast: Ipv4Addr = match bcast_string.parse() {
-        Ok(r)  => r,
-        Err(e) => panic!("could not convert address to Ippv4Addr: {:?}", e),
-    };
+    let bcast: Ipv4Addr = (matches.opt_str("bcast")
+                                  .expect("ip address required")).parse()
+                                                                 .ok()
+                                                                 .expect("ip conversion failed");
 
     let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
     let raddr = SocketAddrV4::new(bcast, 9);
