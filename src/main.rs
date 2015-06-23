@@ -133,11 +133,6 @@ fn main() {
 
     let print_usage = || print!("{}", opts.usage(&format!("Usage: {} [options]", args[0])));
     
-    if args.len() != 3 {
-        print_usage();
- 	return
-    };
-    
     let matches = match opts.parse(&args[1..]) {
         Ok(m)  => m,
         Err(e) => panic!("could not parse arguments: {}", e),
