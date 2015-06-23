@@ -153,11 +153,12 @@ fn main() {
         None    => panic!("mac address required"),
     };
 
-    let bcast: Ipv4Addr = (matches.opt_str("bcast")
-                                  .expect("ip address required"))
-                                      .parse()
-                                      .ok()
-                                      .expect("ip conversion failed");
+    let bcast: Ipv4Addr = matches
+        .opt_str("bcast")
+        .expect("ip address required")
+        .parse()
+        .ok()
+        .expect("ip conversion failed");
 
     let raddr = SocketAddrV4::new(bcast, 9);
 
@@ -166,7 +167,7 @@ fn main() {
         Err(e) => panic!("could not generate magic packet: {:?}", e),
     };
     
-    match wol::send_magic_packet(&magic_packet,&raddr) {
+    match wol::send_magic_packet(&magic_packet, &raddr) {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
