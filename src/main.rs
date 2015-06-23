@@ -10,7 +10,7 @@ mod wol {
     extern crate regex;
 
     use std;
-    use std::net::{ UdpSocket, SocketAddrV4 };
+    use std::net::{ UdpSocket, SocketAddrV4, Ipv4Addr };
     use std::error::Error;
 
     #[cfg(test)]
@@ -54,7 +54,9 @@ mod wol {
     }
 
     #[derive(Debug)]
-    pub enum WolError { InvalidMacAddress, InvalidBufferLength, InvalidPacketSize, MacValidationFailed, MacConversionFailed }
+    pub enum WolError { 
+        InvalidMacAddress, InvalidBufferLength, InvalidPacketSize, MacValidationFailed, MacConversionFailed 
+    }
 
     pub struct Mac {
         address: String
@@ -112,7 +114,8 @@ mod wol {
         };
     }
 
-    pub fn send_magic_packet(packet: &[u8], laddr: &SocketAddrV4, raddr: &SocketAddrV4) -> Result<bool, Box<Error>> {
+    pub fn send_magic_packet(packet: &[u8], raddr: &SocketAddrV4) -> Result<bool, Box<Error>> {
+        let laddr  = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
         let socket = try!(UdpSocket::bind(laddr));
 
         try!(socket.send_to(&packet[0..102], raddr));
@@ -152,11 +155,11 @@ fn main() {
     };
 
     let bcast: Ipv4Addr = (matches.opt_str("bcast")
-                                  .expect("ip address required")).parse()
-                                                                 .ok()
-                                                                 .expect("ip conversion failed");
+                                  .expect("ip address required"))
+                                      .parse()
+                                      .ok()
+                                      .expect("ip conversion failed");
 
-    let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
     let raddr = SocketAddrV4::new(bcast, 9);
 
     let magic_packet = match wol::build_magic_packet(&mac) {
@@ -164,7 +167,7 @@ fn main() {
         Err(e) => panic!("could not generate magic packet: {:?}", e),
     };
     
-    match wol::send_magic_packet(&magic_packet,&laddr,&raddr) {
+    match wol::send_magic_packet(&magic_packet,&raddr) {
         Ok(_)  => println!("Packet sent Ok"),
         Err(e) => panic!("could not send WOL request: {}", e),
     };
