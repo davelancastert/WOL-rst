@@ -47,9 +47,8 @@ mod wol {
 
         #[test]
         fn can_send_packet_loopback() {
-            let laddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
             let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
-            assert_eq!(send_magic_packet(&vec![0xff; 102], &laddr, &raddr).unwrap(), true);
+            assert_eq!(send_magic_packet(&vec![0xff; 102], &raddr).unwrap(), true);
         }  
     }
 
