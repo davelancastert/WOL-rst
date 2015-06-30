@@ -76,13 +76,9 @@ mod wol {
         }
 
         fn as_bytes(&self) -> Result<Vec<u8>, std::num::ParseIntError> {
-            let mut result: Vec<u8> = Vec::new();
-	
-            for byte in self.address.split(":").collect::<Vec<&str>>() {
-                result.push(try!(u8::from_str_radix(byte, 16)))
-            }  
-        
-            Ok(result)
+            self.address.split(":")
+                        .map( |e| u8::from_str_radix(e, 16) )
+                        .collect::<Result<Vec<_>, _>>()
         }   
     }
 
@@ -126,7 +122,7 @@ mod wol {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts: Options = Options::new();
-
+    
     opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "")
         .optopt("b", "bcast", "broadcast address", "")
         .optflag("h", "help", "display this help");
