@@ -1,34 +1,34 @@
-#![cfg_attr(test, allow(dead_code))] 
+#![cfg_attr(test, allow(dead_code))]
 
 extern crate getopts;
 
-use std::env;
+use std::{env, process};
 use getopts::Options;
-use std::net::{ SocketAddrV4, Ipv4Addr };
+use std::net::{SocketAddrV4, Ipv4Addr};
 
 mod wol {
     extern crate regex;
 
     use std;
-    use std::net::{ UdpSocket, SocketAddrV4, Ipv4Addr };
+    use std::net::{UdpSocket, SocketAddrV4, Ipv4Addr};
     use std::error::Error;
 
     #[cfg(test)]
     mod test {
-        use super::{ build_magic_packet, send_magic_packet, Mac };
-        use std::net::{ SocketAddrV4, Ipv4Addr };
+        use super::{build_packet, send_packet, Mac};
+        use std::net::{SocketAddrV4, Ipv4Addr};
 
         #[test]
         fn mac_struct_tests() {
-            assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff").address, "ff:ff:ff:ff:ff:ff".to_string());
-            assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff").as_bytes().unwrap(), vec![255; 6]);
-        }  
-    
+            let mac = Mac::new("ff:ff:ff:ff:ff:ff");
+            assert_eq!(mac.as_bytes().unwrap(), vec![255; 6]);
+        }
+
         #[test]
         fn true_for_valid_mac() {
             assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff").is_valid().unwrap(), true);
             assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF").is_valid().unwrap(), true);
-        }  
+        }
 
         #[test]
         fn false_for_invalid_mac() {
@@ -40,80 +40,89 @@ mod wol {
 
         #[test]
         fn can_build_magic_packet() {
-            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().is_empty(), false);
-            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap().len(), 102);
-            assert_eq!(build_magic_packet(&Mac::new("ff:ff:ff:ff:ff:ff")).unwrap(), vec![255; 102]);
-        }  
+            let mac = Mac::new("ff:ff:ff:ff:ff:ff");
+            assert_eq!(build_packet(&mac).unwrap().is_empty(), false);
+            assert_eq!(build_packet(&mac).unwrap().len(), 102);
+            assert_eq!(build_packet(&mac).unwrap(), vec![255; 102]);
+        }
 
         #[test]
         fn can_send_packet_loopback() {
             let raddr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9);
-            assert_eq!(send_magic_packet(&vec![0xff; 102], &raddr).unwrap(), true);
-        }  
+            assert_eq!(send_packet(&vec![0xff; 102], &raddr).unwrap(), true);
+        }
     }
 
     #[derive(Debug)]
-    pub enum WolError { 
-        InvalidMacAddress, InvalidBufferLength, InvalidPacketSize, MacValidationFailed, MacConversionFailed 
+    pub enum WolError {
+        InvalidMacAddress,
+        InvalidBufferLength,
+        InvalidPacketSize,
+        MacValidationFailed,
+        MacConversionFailed,
     }
 
-    pub struct Mac {
-        address: String
-    }
+    pub struct Mac(String);
 
     impl Mac {
         pub fn new(address: &str) -> Mac {
-            Mac { address: address.to_string() }
+            Mac(address.to_owned())
         }
 
         fn is_valid(&self) -> Result<bool, regex::Error> {
-            let valid_mac = try!(regex::Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"));
-
-            match valid_mac.is_match(&self.address) {
-                true => return Ok(true),
-                _    => return Ok(false),
+            let valid_mac = {
+                try!(regex::Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"))
             };
+
+            let &Mac(ref address) = self;
+
+            match valid_mac.is_match(&address) {
+                true => return Ok(true),
+                _ => return Ok(false),
+            }
         }
 
         fn as_bytes(&self) -> Result<Vec<u8>, std::num::ParseIntError> {
-            self.address.split(":")
-                        .map( |e| u8::from_str_radix(e, 16) )
-                        .collect::<Result<Vec<_>, _>>()
-        }   
+            let &Mac(ref address) = self;
+
+            address.split(":")
+                   .map(|e| u8::from_str_radix(e, 16))
+                   .collect::<Result<Vec<_>, _>>()
+        }
     }
 
-    pub fn build_magic_packet(mac: &Mac) -> Result<Vec<u8>, WolError> {
+    pub fn build_packet(mac: &Mac) -> Result<Vec<u8>, WolError> {
         match mac.is_valid() {
-            Ok(true)  => true,
+            Ok(true) => (),
             Ok(false) => return Err(WolError::InvalidMacAddress),
-            Err(_)    => return Err(WolError::MacValidationFailed) 
-        };
+            Err(_) => return Err(WolError::MacValidationFailed),
+        }
 
-        let mut packet  = vec![0xff; 6];
-    
+        let mut packet = vec![0xff; 6];
+
         let payload = match mac.as_bytes() {
-            Ok(p)  => p,
-            Err(_) => return Err(WolError::MacConversionFailed)
+            Ok(p) => p,
+            Err(_) => return Err(WolError::MacConversionFailed),
         };
 
         match payload.len() {
             6 => for _ in 0..16 {
-	            packet.extend(payload.iter().map( |&e| e ));	
-                },
+                packet.extend(payload.iter().map(|&e| e));
+            },
             _ => return Err(WolError::InvalidBufferLength),
-        };
+        }
 
         match packet.len() {
             102 => return Ok(packet),
             _   => return Err(WolError::InvalidPacketSize),
-        };
+        }
     }
 
-    pub fn send_magic_packet(packet: &[u8], raddr: &SocketAddrV4) -> Result<bool, Box<Error>> {
-        let laddr  = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0),0);
+    pub fn send_packet(p: &[u8], r: &SocketAddrV4) -> Result<bool, Box<Error>> {
+        let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0), 0);
         let socket = try!(UdpSocket::bind(laddr));
 
-        try!(socket.send_to(&packet[0..102], raddr));
+        try!(socket.send_to(&p[0..102], r));
 
         Ok(true)
     }
@@ -122,44 +131,54 @@ mod wol {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts: Options = Options::new();
-    
-    opts.optopt("m", "mac", "MAC address in the form ff:ff:ff:ff:ff:ff", "")
+
+    opts.optopt("m", "mac", "MAC address in the form FF:FF:FF:FF:FF:FF", "")
         .optopt("b", "bcast", "broadcast address", "")
         .optflag("h", "help", "display this help");
 
-    let print_usage = || print!("{}", opts.usage(&format!("Usage: {} [options]", args[0])));
-    
+    let name = args[0].clone();
+
+    let usage = format!("Usage: {}", opts.usage(&(name + " [options]")));
+
     let matches = match opts.parse(&args[1..]) {
-        Ok(m)  => m,
+        Ok(m) => m,
         Err(e) => panic!("could not parse arguments: {}", e),
     };
 
     if matches.opt_present("help") {
-        print_usage();
-        return
-    };
+        print!("{}", usage);
+        process::exit(0);
+    }
 
     let mac = match matches.opt_str("mac") {
         Some(m) => wol::Mac::new(&m),
-        None    => panic!("mac address required"),
+        None => {
+            println!("mac address required");
+            process::exit(1);
+        }
     };
 
-    let bcast: Ipv4Addr = matches
-        .opt_str("bcast")
-        .expect("ip address required")
-        .parse()
-        .ok()
-        .expect("ip conversion failed");
+    let bcast: Ipv4Addr = matches.opt_str("bcast")
+                                 .expect("ip address required")
+                                 .parse()
+                                 .ok()
+                                 .expect("ip conversion failed");
 
     let raddr = SocketAddrV4::new(bcast, 9);
 
-    let magic_packet = match wol::build_magic_packet(&mac) {
-        Ok(p)  => p,
-        Err(e) => panic!("could not generate magic packet: {:?}", e),
+    let magic_packet = match wol::build_packet(&mac) {
+        Ok(p) => p,
+        Err(e) => {
+            println!("could not generate magic packet: {:?}", e);
+            process::exit(1);
+        }
     };
-    
-    match wol::send_magic_packet(&magic_packet, &raddr) {
-        Ok(_)  => println!("Packet sent Ok"),
-        Err(e) => panic!("could not send WOL request: {}", e),
-    };
+
+    match wol::send_packet(&magic_packet, &raddr) {
+        Ok(_) => println!("Packet sent Ok"),
+        Err(e) => {
+            println!("could not send WOL request: {}", e);
+            process::exit(1);
+        }
+    }
 }
