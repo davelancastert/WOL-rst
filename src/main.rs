@@ -21,6 +21,8 @@ mod wol {
         #[test]
         fn mac_struct_tests() {
             let mac = Mac::new("ff:ff:ff:ff:ff:ff");
+            assert_eq!(Mac("ff:ff:ff:ff:ff:ff".into()).as_bytes().unwrap(),
+                       Mac::new("ff:ff:ff:ff:ff:ff").as_bytes().unwrap());
             assert_eq!(mac.as_bytes().unwrap(), vec![255; 6]);
         }
 
@@ -114,7 +116,7 @@ mod wol {
 
         match packet.len() {
             102 => return Ok(packet),
-            _   => return Err(WolError::InvalidPacketSize),
+            _ => return Err(WolError::InvalidPacketSize),
         }
     }
 
