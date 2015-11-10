@@ -1,1 +1,4 @@
-"Simple WOL client written in rust" 
+A simple command line wake on LAN client.
+
+Usage:
+cargo run -- --mac=ff:ff:ff:ff:ff:ff:ff --bcast=192.168.0.1

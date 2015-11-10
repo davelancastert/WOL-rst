@@ -139,8 +139,12 @@ fn main() {
         .optflag("h", "help", "display this help");
 
     let name = args[0].clone();
-
     let usage = format!("Usage: {}", opts.usage(&(name + " [options]")));
+
+    let print_usage_exit = |i| {
+        print!("{}", usage);
+        process::exit(i);
+    };
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -148,16 +152,12 @@ fn main() {
     };
 
     if matches.opt_present("help") {
-        print!("{}", usage);
-        process::exit(0);
+        print_usage_exit(0);
     }
 
     let mac = match matches.opt_str("mac") {
         Some(m) => wol::Mac::new(&m),
-        None => {
-            println!("mac address required");
-            process::exit(1);
-        }
+        None => print_usage_exit(1),
     };
 
     let bcast: Ipv4Addr = matches.opt_str("bcast")
@@ -182,5 +182,5 @@ fn main() {
             println!("could not send WOL request: {}", e);
             process::exit(1);
         }
-    }
+    };
 }
