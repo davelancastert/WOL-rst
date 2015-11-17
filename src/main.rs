@@ -139,25 +139,26 @@ fn main() {
         .optflag("h", "help", "display this help");
 
     let name = args[0].clone();
+
     let usage = format!("Usage: {}", opts.usage(&(name + " [options]")));
 
-    let print_usage_exit = |i| {
-        print!("{}", usage);
-        process::exit(i);
+    let exit = |msg: &str, code: i32| -> ! {
+        println!("{}", msg);
+        process::exit(code);
     };
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
-        Err(e) => panic!("could not parse arguments: {}", e),
+        Err(e) => exit(&format!("could not parse arguments: {:?}", e), 1),
     };
 
     if matches.opt_present("help") {
-        print_usage_exit(0);
+        exit(&usage, 0);
     }
 
     let mac = match matches.opt_str("mac") {
         Some(m) => wol::Mac::new(&m),
-        None => print_usage_exit(1),
+        None => exit(&usage, 1),
     };
 
     let bcast: Ipv4Addr = matches.opt_str("bcast")
@@ -166,21 +167,15 @@ fn main() {
                                  .ok()
                                  .expect("ip conversion failed");
 
-    let raddr = SocketAddrV4::new(bcast, 9);
-
     let magic_packet = match wol::build_packet(&mac) {
         Ok(p) => p,
-        Err(e) => {
-            println!("could not generate magic packet: {:?}", e);
-            process::exit(1);
-        }
+        Err(e) => exit(&format!("could not build magic packet: {:?}", e), 1),
     };
 
+    let raddr = SocketAddrV4::new(bcast, 9);
+    
     match wol::send_packet(&magic_packet, &raddr) {
-        Ok(_) => println!("Packet sent Ok"),
-        Err(e) => {
-            println!("could not send WOL request: {}", e);
-            process::exit(1);
-        }
+        Ok(_) => println!("packet sent Ok"),
+        Err(e) => exit(&format!("could not send request: {:?}", e), 1),
     };
 }
