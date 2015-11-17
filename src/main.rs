@@ -161,18 +161,22 @@ fn main() {
         None => exit(&usage, 1),
     };
 
-    let bcast: Ipv4Addr = matches.opt_str("bcast")
-                                 .expect("ip address required")
-                                 .parse()
-                                 .ok()
-                                 .expect("ip conversion failed");
+    let bcast_s = match matches.opt_str("bcast") {
+        Some(b) => b,
+        None => exit(&usage, 1),
+    };
+
+    let bcast_ip: Ipv4Addr = match bcast_s.parse() {
+        Ok(ip) => ip,
+        Err(e) => exit(&format!("could not parse ip: {:?}", e), 1),
+    };
 
     let magic_packet = match wol::build_packet(&mac) {
         Ok(p) => p,
         Err(e) => exit(&format!("could not build magic packet: {:?}", e), 1),
     };
 
-    let raddr = SocketAddrV4::new(bcast, 9);
+    let raddr = SocketAddrV4::new(bcast_ip, 9);
     
     match wol::send_packet(&magic_packet, &raddr) {
         Ok(_) => println!("packet sent Ok"),
