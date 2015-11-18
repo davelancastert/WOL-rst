@@ -1,3 +1,5 @@
 syntax: glob
-
+*.lock
 *.exe
+*.bk
+target
