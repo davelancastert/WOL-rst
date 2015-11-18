@@ -147,11 +147,9 @@ fn main() {
         process::exit(code);
     };
 
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(e) => exit(&format!("could not parse arguments: {:?}", e), 1),
-    };
-
+    let matches = opts.parse(&args[1..])
+        .unwrap_or_else(|e| exit(&format!("could not parse arguments: {:?}", e), 1));
+    
     if matches.opt_present("help") {
         exit(&usage, 0);
     }
@@ -165,17 +163,13 @@ fn main() {
         Some(b) => b,
         None => exit(&usage, 1),
     };
+    
+    let bcast_ip: Ipv4Addr = bcast_s.parse()
+        .unwrap_or_else(|e| exit(&format!("could not parse ip: {:?}", e), 1));
 
-    let bcast_ip: Ipv4Addr = match bcast_s.parse() {
-        Ok(ip) => ip,
-        Err(e) => exit(&format!("could not parse ip: {:?}", e), 1),
-    };
-
-    let magic_packet = match wol::build_packet(&mac) {
-        Ok(p) => p,
-        Err(e) => exit(&format!("could not build magic packet: {:?}", e), 1),
-    };
-
+    let magic_packet = wol::build_packet(&mac)
+        .unwrap_or_else(|e| exit(&format!("could not build packet: {:?}", e), 1));
+    
     let raddr = SocketAddrV4::new(bcast_ip, 9);
     
     match wol::send_packet(&magic_packet, &raddr) {
