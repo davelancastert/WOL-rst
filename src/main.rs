@@ -30,7 +30,7 @@ mod wol {
 
         #[test]
         fn return_error_for_invalid_mac() {
-            let macs = vec![":::::", "ff:ff:ff:ff:ff:zz", "ff:ff:ff:ff:ff:ff:ff"];
+            let macs = vec![":::::", "ff:ff:ff:ff:ff:fg", "ff:ff:ff:ff:ff:ff:ff"];
             for m in macs {
                 match m.parse::<Mac>() {
                     Err(e) => assert_eq!(e, ParseError::InvalidInput),
@@ -64,6 +64,7 @@ mod wol {
     pub enum ParseError {
         FailedConversion,
         InvalidInput,
+        InvalidLength,
     }
 
     #[derive(Debug, PartialEq)]
@@ -91,7 +92,13 @@ mod wol {
                 match s.split(':')
                        .map(|e| u8::from_str_radix(e, 16))
                        .collect::<Result<Vec<_>, _>>() {
-                    Ok(r) => Ok(Mac::new((r[0], r[1], r[2], r[3], r[4], r[5]))),
+                    Ok(r) => {
+                        if r.len() == 6 {
+                            Ok(Mac::new((r[0], r[1], r[2], r[3], r[4], r[5])))
+                        } else {
+                            Err(ParseError::InvalidLength)
+                        }
+                    }
                     Err(_) => Err(ParseError::FailedConversion),
                 }
             } else {
@@ -107,7 +114,7 @@ mod wol {
         match payload.len() {
             6 => {
                 for _ in 0..16 {
-                    packet.extend(payload.iter().map(|&e| e));
+                    packet.extend_from_slice(&payload);
                 }
             }
             _ => return Err(WolError::InvalidBufferLength),
@@ -120,7 +127,7 @@ mod wol {
     }
 
     pub fn send_packet(p: &[u8], r: &SocketAddrV4) -> Result<bool, Box<Error>> {
-        let laddr = SocketAddrV4::new(Ipv4Addr::new(0u8, 0, 0, 0), 0);
+        let laddr = SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 0);
         let socket = try!(UdpSocket::bind(laddr));
 
         try!(socket.send_to(&p[0..102], r));
@@ -147,7 +154,7 @@ fn main() {
     };
 
     let matches = opts.parse(&args[1..])
-                      .unwrap_or_else(|e| exit(&format!("could not parse arguments: {:?}", e), 1));
+                      .unwrap_or_else(|e| exit(&format!("could not parse args: {:?}", e), 1));
 
     if matches.opt_present("help") {
         exit(&usage, 0);
