@@ -1,5 +1,3 @@
-#![cfg_attr(test, allow(dead_code))]
-
 extern crate getopts;
 
 use std::{env, process};
@@ -9,40 +7,41 @@ use std::net::{SocketAddrV4, Ipv4Addr};
 mod wol {
     extern crate regex;
 
-    use std;
-    use std::net::{UdpSocket, SocketAddrV4, Ipv4Addr};
+    use wol::regex::Regex;
+
     use std::error::Error;
+    use std::str::FromStr;
+    use std::net::{UdpSocket, SocketAddrV4, Ipv4Addr};
 
     #[cfg(test)]
     mod test {
-        use super::{build_packet, send_packet, Mac};
+        use super::{build_packet, send_packet, Mac, ParseError};
         use std::net::{SocketAddrV4, Ipv4Addr};
 
         #[test]
-        fn mac_struct_tests() {
-            let mac = Mac::new("ff:ff:ff:ff:ff:ff");
-            assert_eq!(Mac("ff:ff:ff:ff:ff:ff".into()).as_bytes().unwrap(),
-                       Mac::new("ff:ff:ff:ff:ff:ff").as_bytes().unwrap());
-            assert_eq!(mac.as_bytes().unwrap(), vec![255; 6]);
+        fn can_parse_valid_mac() {
+            assert_eq!("ff:ff:ff:ff:ff:ff".parse::<Mac>().unwrap(),
+                       Mac(255, 255, 255, 255, 255, 255));
+            assert_eq!("FF:FF:FF:FF:FF:FF".parse::<Mac>().unwrap(),
+                       Mac(255, 255, 255, 255, 255, 255));
+            assert_eq!("00:00:00:00:00:00".parse::<Mac>().unwrap(),
+                       Mac(0, 0, 0, 0, 0, 0));
         }
 
         #[test]
-        fn true_for_valid_mac() {
-            assert_eq!(Mac::new("ff:ff:ff:ff:ff:ff").is_valid().unwrap(), true);
-            assert_eq!(Mac::new("FF:FF:FF:FF:FF:FF").is_valid().unwrap(), true);
-        }
-
-        #[test]
-        fn false_for_invalid_mac() {
-            assert_eq!(Mac::new("").is_valid().unwrap(), false);
-            assert_eq!(Mac::new(":::::").is_valid().unwrap(), false);
-            assert_eq!(Mac::new("ff:ff:ff:ff:ff").is_valid().unwrap(), false);
-            assert_eq!(Mac::new("zz:zz:zz:zz:zz:zz").is_valid().unwrap(), false);
+        fn return_error_for_invalid_mac() {
+            let macs = vec![":::::", "ff:ff:ff:ff:ff:zz", "ff:ff:ff:ff:ff:ff:ff"];
+            for m in macs {
+                match m.parse::<Mac>() {
+                    Err(e) => assert_eq!(e, ParseError::InvalidInput),
+                    Ok(_) => unreachable!(),
+                };
+            }
         }
 
         #[test]
         fn can_build_magic_packet() {
-            let mac = Mac::new("ff:ff:ff:ff:ff:ff");
+            let mac: Mac = "ff:ff:ff:ff:ff:ff".parse().unwrap();
             assert_eq!(build_packet(&mac).unwrap().is_empty(), false);
             assert_eq!(build_packet(&mac).unwrap().len(), 102);
             assert_eq!(build_packet(&mac).unwrap(), vec![255; 102]);
@@ -57,60 +56,60 @@ mod wol {
 
     #[derive(Debug)]
     pub enum WolError {
-        InvalidMacAddress,
         InvalidBufferLength,
         InvalidPacketSize,
-        MacValidationFailed,
-        MacConversionFailed,
     }
 
-    pub struct Mac(String);
+    #[derive(Debug, PartialEq)]
+    pub enum ParseError {
+        FailedConversion,
+        InvalidInput,
+    }
+
+    #[derive(Debug, PartialEq)]
+    pub struct Mac(u8, u8, u8, u8, u8, u8);
 
     impl Mac {
-        pub fn new(address: &str) -> Mac {
-            Mac(address.to_owned())
+        pub fn new(a: (u8, u8, u8, u8, u8, u8)) -> Mac {
+            Mac(a.0, a.1, a.2, a.3, a.4, a.5)
         }
 
-        fn is_valid(&self) -> Result<bool, regex::Error> {
+        fn as_bytes(&self) -> [u8; 6] {
+            [self.0, self.1, self.2, self.3, self.4, self.5]
+        }
+    }
+
+    impl FromStr for Mac {
+        type Err = ParseError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
             let valid_mac = {
-                try!(regex::Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$"))
+                Regex::new("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$").unwrap()
             };
 
-            let &Mac(ref address) = self;
-
-            match valid_mac.is_match(&address) {
-                true => return Ok(true),
-                _ => return Ok(false),
+            if valid_mac.is_match(s) {
+                match s.split(':')
+                       .map(|e| u8::from_str_radix(e, 16))
+                       .collect::<Result<Vec<_>, _>>() {
+                    Ok(r) => Ok(Mac::new((r[0], r[1], r[2], r[3], r[4], r[5]))),
+                    Err(_) => Err(ParseError::FailedConversion),
+                }
+            } else {
+                Err(ParseError::InvalidInput)
             }
-        }
-
-        fn as_bytes(&self) -> Result<Vec<u8>, std::num::ParseIntError> {
-            let &Mac(ref address) = self;
-
-            address.split(":")
-                   .map(|e| u8::from_str_radix(e, 16))
-                   .collect::<Result<Vec<_>, _>>()
         }
     }
 
     pub fn build_packet(mac: &Mac) -> Result<Vec<u8>, WolError> {
-        match mac.is_valid() {
-            Ok(true) => (),
-            Ok(false) => return Err(WolError::InvalidMacAddress),
-            Err(_) => return Err(WolError::MacValidationFailed),
-        }
-
         let mut packet = vec![0xff; 6];
-
-        let payload = match mac.as_bytes() {
-            Ok(p) => p,
-            Err(_) => return Err(WolError::MacConversionFailed),
-        };
+        let payload = mac.as_bytes();
 
         match payload.len() {
-            6 => for _ in 0..16 {
-                packet.extend(payload.iter().map(|&e| e));
-            },
+            6 => {
+                for _ in 0..16 {
+                    packet.extend(payload.iter().map(|&e| e));
+                }
+            }
             _ => return Err(WolError::InvalidBufferLength),
         }
 
@@ -148,30 +147,34 @@ fn main() {
     };
 
     let matches = opts.parse(&args[1..])
-        .unwrap_or_else(|e| exit(&format!("could not parse arguments: {:?}", e), 1));
-    
+                      .unwrap_or_else(|e| exit(&format!("could not parse arguments: {:?}", e), 1));
+
     if matches.opt_present("help") {
         exit(&usage, 0);
     }
 
-    let mac = match matches.opt_str("mac") {
-        Some(m) => wol::Mac::new(&m),
-        None => exit(&usage, 1),
+    let mac: wol::Mac = match matches.opt_str("mac") {
+        Some(m) => {
+            m.parse()
+             .unwrap_or_else(|e| exit(&format!("could not parse mac: {:?}", e), 1))
+        }
+        None => exit(&usage, 0),
     };
 
-    let bcast_s = match matches.opt_str("bcast") {
-        Some(b) => b,
-        None => exit(&usage, 1),
+    let bcast: Ipv4Addr = match matches.opt_str("bcast") {
+        Some(b) => {
+            b.parse()
+             .unwrap_or_else(|e| exit(&format!("could not parse ip: {:?}", e), 1))
+        }
+        None => exit(&usage, 0),
     };
-    
-    let bcast_ip: Ipv4Addr = bcast_s.parse()
-        .unwrap_or_else(|e| exit(&format!("could not parse ip: {:?}", e), 1));
 
-    let magic_packet = wol::build_packet(&mac)
-        .unwrap_or_else(|e| exit(&format!("could not build packet: {:?}", e), 1));
-    
-    let raddr = SocketAddrV4::new(bcast_ip, 9);
-    
+    let magic_packet = wol::build_packet(&mac).unwrap_or_else(|e| {
+        exit(&format!("could not build packet: {:?}", e), 1)
+    });
+
+    let raddr = SocketAddrV4::new(bcast, 9);
+
     match wol::send_packet(&magic_packet, &raddr) {
         Ok(_) => println!("packet sent Ok"),
         Err(e) => exit(&format!("could not send request: {:?}", e), 1),
