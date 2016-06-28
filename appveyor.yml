@@ -122,6 +122,8 @@ test_script:
 
 after_test:
   - cmd: cargo build --release
+    on:
+      branch: release
 
 artifacts:
   - path: 'target\release\wol.exe'
