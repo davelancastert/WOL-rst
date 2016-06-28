@@ -122,4 +122,4 @@ test_script:
 
 artifacts:
   - path: 'target\debug\*.exe'
-  - name: wol
+    name: wol
