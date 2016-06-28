@@ -136,6 +136,11 @@ mod wol {
     }
 }
 
+fn exit(msg: &str, code: i32) -> ! {
+    println!("{}", msg);
+    process::exit(code);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts: Options = Options::new();
@@ -147,11 +152,6 @@ fn main() {
     let name = args[0].clone();
 
     let usage = format!("Usage: {}", opts.usage(&(name + " [options]")));
-
-    let exit = |msg: &str, code: i32| -> ! {
-        println!("{}", msg);
-        process::exit(code);
-    };
 
     let matches = opts.parse(&args[1..])
                       .unwrap_or_else(|e| exit(&format!("could not parse args: {:?}", e), 1));
