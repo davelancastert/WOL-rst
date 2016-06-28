@@ -121,5 +121,5 @@ test_script:
 - cmd: cargo test --verbose
 
 artifacts:
-    - path: 'target\debug\wol*.*'
-    - name: wol
+  - path: 'target\debug\wol*.*'
+  - name: wol
