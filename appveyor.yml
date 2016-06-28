@@ -134,4 +134,4 @@ deploy:
   set_public: false
   artifact: wol
   on:
-    branch: release
+    branch: release # Only deploy on release
