@@ -123,3 +123,15 @@ test_script:
 artifacts:
   - path: 'target\debug\*.exe'
     name: wol
+
+deploy:
+  provider: S3
+  access_key_id: 
+    secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
+  secret_access_key: 
+    secure: ZIAE9WYUQ5NfG+NL/PyD2MHrOFfn7+e9Keeg2shC06pbe43HTplb5h8Idielfn01
+  bucket: wolrst
+  set_public: false
+  artifact: wol
+  on:
+    branch: release
