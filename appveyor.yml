@@ -121,7 +121,7 @@ test_script:
   - cmd: cargo test --verbose
 
 after_test:
-  - cmd: cargo build --release
+  - cmd: cargo build --release # build release
 
 artifacts:
   - path: 'target\release\wol.exe'
