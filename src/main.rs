@@ -136,7 +136,7 @@ mod wol {
     }
 }
 
-fn exit(msg: &str, cide: i32) -> ! {
+fn exit(msg: &str, code: i32) -> ! {
     println!("{}", msg);
     process::exit(code);
 }
