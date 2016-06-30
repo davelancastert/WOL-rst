@@ -1,0 +1,23 @@
+containers:
+    wol:
+        environ:
+            HOME: /work/run
+        setup:
+        - !Ubuntu trusty
+        - !Install [ca-certificates, gcc, build-essential]
+        - !TarInstall
+          url: https://static.rust-lang.org/dist/rust-1.9.0-x86_64-unknown-linux-gnu.tar.gz
+          script: ./install.sh --prefix=/usr
+commands:
+    run: !Command
+         container: wol
+         run: [cargo, run]
+    build: !Command
+         container: wol
+         run: [cargo, build]
+    test: !Command
+         container: wol
+         run: [cargo, test]
+    version: !Command
+         container: wol
+         run: [cargo, --version]
