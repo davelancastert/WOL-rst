@@ -26,7 +26,10 @@ os: Visual Studio 2015
 #
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
-  key: 'AAA'
+  aws_id:
+    secure: 'aaa'
+  aws_key: 
+    secure: 'AAA'
   matrix:
 
 ### MSVC Toolchains ###
@@ -123,10 +126,13 @@ test_script:
 
 after_test:
   - ps: >-
-      "Pausing $($env:key)...";
+      "Pausing ...";
       Start-Sleep -s 10;
       "Done!";
   - cmd: choco install awstools.powershell
+  - ps: >-
+      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+      Get-EC2Instance;
   - cmd: cargo build --release # build release
 
 artifacts:
