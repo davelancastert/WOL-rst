@@ -7,3 +7,9 @@ A simple command line wake on LAN client.
 # Usage:
 
 cargo run -- --mac=ff:ff:ff:ff:ff:ff:ff --bcast=192.168.0.1
+
+# Vagga support:
+
+Install Vagga and then view a list of available commands with:
+
+`$ vagga`
