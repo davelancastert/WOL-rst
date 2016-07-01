@@ -122,9 +122,9 @@ test_script:
 
 after_test:
   - ps: >-
-      "Pausing..."
+      "Pausing...";
       Start-Sleep -s 10;
-      "Done!"
+      "Done!";
   - cmd: choco install awstools.powershell
   - cmd: cargo build --release # build release
 
