@@ -123,7 +123,7 @@ test_script:
 after_test:
   - ps: >-
       "Pausing..."
-      Start-Sleep -s 10
+      Start-Sleep -s 10;
       "Done!"
   - cmd: cargo build --release # build release
 
