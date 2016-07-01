@@ -125,6 +125,7 @@ after_test:
       "Pausing..."
       Start-Sleep -s 10;
       "Done!"
+  - cmd: choco install awstools.powershell
   - cmd: cargo build --release # build release
 
 artifacts:
