@@ -26,6 +26,7 @@ os: Visual Studio 2015
 #
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
+  key: 'AAA'
   matrix:
 
 ### MSVC Toolchains ###
@@ -119,9 +120,6 @@ build: false
 # variable.
 test_script:
   - cmd: cargo test --verbose
-
-environment:
-  key: 'AAA'
 
 after_test:
   - ps: >-
