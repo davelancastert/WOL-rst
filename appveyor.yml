@@ -27,9 +27,9 @@ os: Visual Studio 2015
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
   aws_id:
-    secure: 'aaa'
+    secure: mbbaDFR1ZzkCUoPgxap7Ig==
   aws_key: 
-    secure: 'AAA'
+    secure: mbbaDFR1ZzkCUoPgxap7Ig==
   matrix:
 
 ### MSVC Toolchains ###
@@ -131,7 +131,7 @@ after_test:
       "Done!";
   - cmd: choco install awstools.powershell
   - ps: >-
-      Set-AWSCredentials -AccessKey $($env:aws_id) -SecretKey $($env:aws_key) -StoreAs default;
+      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
       #Get-EC2Instance;
   - cmd: cargo build --release # build release
