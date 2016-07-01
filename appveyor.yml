@@ -120,9 +120,12 @@ build: false
 test_script:
   - cmd: cargo test --verbose
 
+environment:
+  key: 'AAA'
+
 after_test:
   - ps: >-
-      "Pausing...";
+      "Pausing $($env:key)...";
       Start-Sleep -s 10;
       "Done!";
   - cmd: choco install awstools.powershell
