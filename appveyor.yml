@@ -131,8 +131,9 @@ after_test:
       "Done!";
   - cmd: choco install awstools.powershell
   - ps: >-
-      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
-      Get-EC2Instance;
+      Set-AWSCredentials -AccessKey $($env:aws_id) -SecretKey $($env:aws_key) -StoreAs default;
+      Get-AWSCredentials -ListStoredCredentials;
+      #Get-EC2Instance;
   - cmd: cargo build --release # build release
 
 artifacts:
