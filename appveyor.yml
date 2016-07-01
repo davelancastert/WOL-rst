@@ -131,7 +131,7 @@ after_test:
   - ps: >-
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
-      Get-EC2Instance;
+      Get-EC2Instance -Region eu-west-1;
     # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
