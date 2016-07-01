@@ -27,9 +27,9 @@ os: Visual Studio 2015
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
   aws_id:
-    secure: mbbaDFR1ZzkCUoPgxap7Ig==
+    secure: fdkP4xKoSs8v848BAuvttp5ymXoXd8AvNzNdaB70cDY=
   aws_key: 
-    secure: mbbaDFR1ZzkCUoPgxap7Ig==
+    secure: XrGtG/RmZg7CIV+zFmSLvcpLXYB8afMHDVuw3b2WCp4Tg2GYtXbMT1u+BSkFxR9E
   matrix:
 
 ### MSVC Toolchains ###
@@ -125,15 +125,19 @@ test_script:
   - cmd: cargo test --verbose
 
 after_test:
+    # Install AWS client for PS.
+  - cmd: choco install awstools.powershell
+    # Do some AWS stuff.
+  - ps: >-
+      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+      Get-AWSCredentials -ListStoredCredentials;
+      Get-EC2Instance;
+    # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
       Start-Sleep -s 10;
       "Done!";
-  - cmd: choco install awstools.powershell
-  - ps: >-
-      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
-      Get-AWSCredentials -ListStoredCredentials;
-      #Get-EC2Instance;
+    # Run our tests.
   - cmd: cargo build --release # build release
 
 artifacts:
