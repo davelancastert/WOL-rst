@@ -1,0 +1,9 @@
+database:
+  override:
+    - echo "Override DB settings"
+
+test:
+  pre:
+    - bundle install
+  override:
+    - bundle exec rspec

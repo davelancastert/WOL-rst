@@ -132,6 +132,8 @@ after_test:
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
       Get-EC2Instance -Region eu-west-1;
+    # Loop through each Windows OS version spinning up an instance.
+    # Ensure userdata parameter is sent with a base64 encoded PS command to install deploy agent.
     # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
