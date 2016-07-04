@@ -133,7 +133,8 @@ after_test:
   - ps: >-
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
-      New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload;
+      $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
+      $env:instid = $instid[0].instanceid;
     #  Exit 1;
     #  Get-EC2Instance -Region eu-west-1;
     # Loop through each Windows OS version spinning up an instance.
@@ -141,6 +142,7 @@ after_test:
     # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
+      Echo $env:instid;
       Start-Sleep -s 240;
       "Done!";
     # Run our tests.
@@ -155,6 +157,8 @@ artifacts:
 deploy:
   - provider: Environment
     name: Ec2
+    on: 
+      branch: master
   #provider: S3
   #access_key_id: 
   #  secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
