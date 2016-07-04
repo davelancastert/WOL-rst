@@ -171,4 +171,4 @@ deploy:
 
 after_deploy:
   - ps: >-
-      Echo $env:instid
+      Echo $env:instid;
