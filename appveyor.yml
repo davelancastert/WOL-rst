@@ -27,9 +27,9 @@ os: Visual Studio 2015
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
   aws_id:
-    secure: fdkP4xKoSs8v848BAuvttp5ymXoXd8AvNzNdaB70cDY=
+    secure: Y7Y8RtcP7vFH/IFMO+zsouVOwOijq2NxmUhSz+dnEHU=
   aws_key: 
-    secure: XrGtG/RmZg7CIV+zFmSLvcpLXYB8afMHDVuw3b2WCp4Tg2GYtXbMT1u+BSkFxR9E
+    secure: Vp0uxHxQJVBJvpiE5N+uRI5kFLdGfiUrc7W8BtT8sJrtzC8wtRxE7vRJlT02R5Q5
   matrix:
 
 ### MSVC Toolchains ###
@@ -131,14 +131,16 @@ after_test:
   - ps: >-
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
-      Exit 1;
+      $payload = "PHBvd2Vyc2hlbGw+DQoobmV3LW9iamVjdCBuZXQud2ViY2xpZW50KS5Eb3dubG9hZEZpbGUoJ2h0dHA6Ly93d3cuYXBwdmV5b3IuY29tL2Rvd25sb2Fkcy9kZXBsb3ltZW50LWFnZW50L2xhdGVzdC9BcHB2ZXlvckRlcGxveW1lbnRBZ2VudC5tc2knLCAnQXBwdmV5b3JEZXBsb3ltZW50QWdlbnQubXNpJykNCm1zaWV4ZWMgL2kgQXBwdmV5b3JEZXBsb3ltZW50QWdlbnQubXNpIC9xdWlldCAvcW4gL25vcmVzdGFydCAvbG9nIGluc3RhbGwubG9nIEVOVklST05NRU5UX0FDQ0VTU19LRVk9c21vazZ5aDMzZ2hyN3ZzbQ0KPC9wb3dlcnNoZWxsPg==";
+      New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $payload;
+    #  Exit 1;
     #  Get-EC2Instance -Region eu-west-1;
     # Loop through each Windows OS version spinning up an instance.
     # Ensure userdata parameter is sent with a base64 encoded PS command to install deploy agent.
     # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
-      Start-Sleep -s 10;
+      Start-Sleep -s 240;
       "Done!";
     # Run our tests.
   - cmd: cargo build --release # build release
@@ -148,13 +150,15 @@ artifacts:
     name: wol
 
 deploy:
-  provider: S3
-  access_key_id: 
-    secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
-  secret_access_key: 
-    secure: ZIAE9WYUQ5NfG+NL/PyD2MHrOFfn7+e9Keeg2shC06pbe43HTplb5h8Idielfn01
-  bucket: wolrst
-  set_public: false
-  artifact: wol
-  on:
-    branch: release # Only deploy on release
+  - provider: Environment
+    name: Ec2
+  #provider: S3
+  #access_key_id: 
+  #  secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
+  #secret_access_key: 
+  #  secure: ZIAE9WYUQ5NfG+NL/PyD2MHrOFfn7+e9Keeg2shC06pbe43HTplb5h8Idielfn01
+  #bucket: wolrst
+  #set_public: false
+  #artifact: wol
+  #on:
+  #  branch: release # Only deploy on release
