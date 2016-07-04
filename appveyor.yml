@@ -142,7 +142,6 @@ after_test:
     # Wait for an instance to spin up etc.
   - ps: >-
       "Pausing ...";
-      Echo $env:instid;
       Start-Sleep -s 240;
       "Done!";
     # Run our tests.
@@ -169,3 +168,7 @@ deploy:
   #artifact: wol
   #on:
   #  branch: release # Only deploy on release
+
+after_deploy:
+  - ps: >-
+      Echo $env:instid
