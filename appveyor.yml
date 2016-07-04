@@ -145,9 +145,11 @@ after_test:
       "Done!";
     # Run our tests.
   - cmd: cargo build --release # build release
+  - cmd: 7z a wol.zip target\release\wol.exe
 
 artifacts:
-  - path: 'target\release\wol.exe'
+  #- path: 'target\release\wol.exe'
+  - path: wol.zip
     name: wol
 
 deploy:
