@@ -141,7 +141,7 @@ after_test:
     # Ensure userdata parameter is sent with a base64 encoded PS command to install deploy agent.
     # Wait for an instance to spin up etc.
   - ps: >-
-      "Pausing ...";
+      "Waiting for EC2 instance...";
       Start-Sleep -s 240;
       "Done!";
     # Run our tests.
@@ -171,4 +171,6 @@ deploy:
 
 after_deploy:
   - ps: >-
-      Echo $env:instid;
+      Echo "Pausing...";
+      Start-Sleep -s 240;
+      Remove-EC2Instance -Region eu-west-1 -Instance $env:instid;
