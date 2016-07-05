@@ -127,29 +127,11 @@ test_script:
   - cmd: cargo test --verbose
 
 after_test:
-    # Install AWS client for PS.
- # - cmd: choco install awstools.powershell
-    # Do some AWS stuff.
- # - ps: >-
-  #    Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
-   #   Get-AWSCredentials -ListStoredCredentials;
-    #  $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
-     # $env:instid = $instid[0].instanceid;
-    #  Exit 1;
-    #  Get-EC2Instance -Region eu-west-1;
-    # Loop through each Windows OS version spinning up an instance.
-    # Ensure userdata parameter is sent with a base64 encoded PS command to install deploy agent.
-    # Wait for an instance to spin up etc.
-#  - ps: >-
-#      "Waiting for EC2 instance...";
-#      Start-Sleep -s 240;
-#      "Done!";
-    # Run our tests.
   - cmd: cargo build --release # build release
-  - cmd: 7z a wol.zip target\release\wol.exe
+  - cmd: 7z a wol.zip target\release\wol.exe # zip it up
 
 artifacts:
-  #- path: 'target\release\wol.exe'
+  # upload our archive as an artifact so it is available to deploy
   - path: wol.zip
     name: wol
 
@@ -173,9 +155,6 @@ before_deploy:
       "Waiting for EC2 instance...";
       Start-Sleep -s 240;
       "Done!";
-    # Run our tests.
-  - cmd: cargo build --release # build release
-  - cmd: 7z a wol.zip target\release\wol.exe
 
 deploy:
     # Deploy using the Appveyor Agent installed on the EC2 instance.
@@ -183,6 +162,7 @@ deploy:
     name: Ec2
     on: 
       branch: master
+  - provider: Script
   #provider: S3
   #access_key_id: 
   #  secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
@@ -194,6 +174,7 @@ deploy:
   #on:
   #  branch: release # Only deploy on release
 
+# We need to cleanup our EC2 instances. Possibly sleep and check they are really dead.
 after_deploy:
   - ps: >-
       Remove-EC2Instance -Region eu-west-1 -InstanceId $env:instid -Force;
