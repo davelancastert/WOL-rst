@@ -196,6 +196,6 @@ deploy:
 
 after_deploy:
   - ps: >-
-      Stop-EC2Instance -Region eu-west-1 -InstanceId $env:instid -Terminate;
-      Echo "Pausing...";
-      Start-Sleep -s 240;
+      # Kill the EC2 instance we spun up.
+      Remove-EC2Instance -Region eu-west-1 -InstanceId $env:instid;
+      #Stop-EC2Instance -Region eu-west-1 -InstanceId $env:instid -Terminate;
