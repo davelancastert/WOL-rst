@@ -128,22 +128,22 @@ test_script:
 
 after_test:
     # Install AWS client for PS.
-  - cmd: choco install awstools.powershell
+ # - cmd: choco install awstools.powershell
     # Do some AWS stuff.
-  - ps: >-
-      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
-      Get-AWSCredentials -ListStoredCredentials;
-      $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
-      $env:instid = $instid[0].instanceid;
+ # - ps: >-
+  #    Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+   #   Get-AWSCredentials -ListStoredCredentials;
+    #  $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
+     # $env:instid = $instid[0].instanceid;
     #  Exit 1;
     #  Get-EC2Instance -Region eu-west-1;
     # Loop through each Windows OS version spinning up an instance.
     # Ensure userdata parameter is sent with a base64 encoded PS command to install deploy agent.
     # Wait for an instance to spin up etc.
-  - ps: >-
-      "Waiting for EC2 instance...";
-      Start-Sleep -s 240;
-      "Done!";
+#  - ps: >-
+#      "Waiting for EC2 instance...";
+#      Start-Sleep -s 240;
+#      "Done!";
     # Run our tests.
   - cmd: cargo build --release # build release
   - cmd: 7z a wol.zip target\release\wol.exe
@@ -152,6 +152,24 @@ artifacts:
   #- path: 'target\release\wol.exe'
   - path: wol.zip
     name: wol
+
+before_deploy:
+    # Install AWS client for PS.
+  - cmd: choco install awstools.powershell
+    # Do some AWS stuff.
+  - ps: >-
+      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+      Get-AWSCredentials -ListStoredCredentials;
+      $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
+      $env:instid = $instid[0].instanceid;
+    # Wait for an instance to spin up etc.
+  - ps: >-
+      "Waiting for EC2 instance...";
+      Start-Sleep -s 240;
+      "Done!";
+    # Run our tests.
+  - cmd: cargo build --release # build release
+  - cmd: 7z a wol.zip target\release\wol.exe
 
 deploy:
   - provider: Environment
@@ -173,5 +191,4 @@ after_deploy:
   - ps: >-
       Echo "Pausing...";
       Start-Sleep -s 240;
-      Import-Module AWSPowerShell;
       Remove-EC2Instance -Region eu-west-1 -Instance $env:instid;
