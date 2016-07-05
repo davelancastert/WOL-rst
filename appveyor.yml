@@ -173,4 +173,5 @@ after_deploy:
   - ps: >-
       Echo "Pausing...";
       Start-Sleep -s 240;
+      Import-Module AWSPowerShell;
       Remove-EC2Instance -Region eu-west-1 -Instance $env:instid;
