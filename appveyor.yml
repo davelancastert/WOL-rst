@@ -192,6 +192,7 @@ after_deploy:
     # Re-Install AWS client for PS.
   - cmd: choco install awstools.powershell
   - ps: >-
+      $PSVersionTable.PSVersion;
       Get-Module;
       Echo "Pausing...";
       Start-Sleep -s 240;
