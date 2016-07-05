@@ -156,13 +156,13 @@ artifacts:
 before_deploy:
     # Install AWS client for PS.
   - cmd: choco install awstools.powershell
-    # Do some AWS stuff.
+    # Set AWS credentials, send run instance request and record the instance ID.
   - ps: >-
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
       Get-AWSCredentials -ListStoredCredentials;
       $instid = New-EC2Instance -Region eu-west-1 -ImageId ami-f6ef7185 -MinCount 1 -MaxCount 1 -KeyName Default -InstanceType t2.micro -UserData $env:payload | Select-Object -ExpandProperty instances;
       $env:instid = $instid[0].instanceid;
-    # Wait for an instance to spin up etc.
+    # Wait a while to let the instance spin up.
   - ps: >-
       "Waiting for EC2 instance...";
       Start-Sleep -s 240;
@@ -172,6 +172,7 @@ before_deploy:
   - cmd: 7z a wol.zip target\release\wol.exe
 
 deploy:
+    # Deploy using the Appveyor Agent installed on the EC2 instance.
   - provider: Environment
     name: Ec2
     on: 
@@ -188,8 +189,9 @@ deploy:
   #  branch: release # Only deploy on release
 
 after_deploy:
+    # Re-Install AWS client for PS.
+  - cmd: choco install awstools.powershell
   - ps: >-
-      Import-Module "C:\Program Files (x86)\AWS Tools\PowerShell\AWSPowerShell\AWSPowerShell.psd1";
       Get-Module;
       Echo "Pausing...";
       Start-Sleep -s 240;
