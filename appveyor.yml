@@ -155,7 +155,7 @@ before_deploy:
       while((Get-EC2InstanceStatus -Region eu-west-1 -InstanceId $env:instid |
           Select-Object -Exp Status |
           Select-Object -Exp Status |
-          Select-Object -Exp Value) -ne "ok" {
+          Select-Object -Exp Value) -ne "ok") {
         Echo "Waiting for instance to spin up, sleeping for 20.."    
         Start-Sleep -s 20;
       };
