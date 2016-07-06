@@ -140,25 +140,33 @@ before_deploy:
   - cmd: choco install awstools.powershell
     # Set AWS credentials, send run instance request and record the instance ID.
   - ps: >-
+      $awsAmis = @("ami-f6ef7185", "ami-8fed73fc",  "ami-12e87661");
+      $runningEc2 = New-Object System.Collections.ArrayList;
+
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
-      $instid = New-EC2Instance `
-          -Region eu-west-1 `
-          -ImageId ami-f6ef7185 `
-          -MinCount 1 `
-          -MaxCount 1 `
-          -KeyName Default `
-          -InstanceType t2.micro `
-          -UserData $env:payload | Select-Object -ExpandProperty instances;
-      $env:instid = $instid[0].instanceid;
+
+      foreach ($inst in $awsAmis) {
+          $instid = New-EC2Instance `
+              -Region eu-west-1 `
+              -ImageId $inst `
+              -MinCount 1 `
+              -MaxCount 1 `
+              -KeyName Default `
+              -InstanceType t2.micro `
+              -UserData $env:payload | Select-Object -Exp instances;
+          $runningEc2.Add($instid[0].instanceid);
+      #    $env:instid = $instid[0].instanceid;
+      };
     # Wait a while to let the instance spin up.
   - ps: >-
-      while((Get-EC2InstanceStatus -Region eu-west-1 -InstanceId $env:instid |
-          Select-Object -Exp Status |
-          Select-Object -Exp Status |
-          Select-Object -Exp Value) -ne "ok") {
-        Echo "Waiting for instance to spin up, sleeping for 20.."    
-        Start-Sleep -s 20;
-      };
+      Start-Sleep -s 240;
+      #while((Get-EC2InstanceStatus -Region eu-west-1 -InstanceId $env:instid |
+      #    Select-Object -Exp Status |
+      #    Select-Object -Exp Status |
+      #    Select-Object -Exp Value) -ne "ok") {
+      #  Echo "Waiting for instance to spin up, sleeping for 20.."    
+      #  Start-Sleep -s 20;
+      #};
       "Done!";
 
 deploy:
@@ -180,4 +188,6 @@ deploy:
 # We need to cleanup our EC2 instances. Possibly sleep and check they are really dead.
 after_deploy:
   - ps: >-
-      Remove-EC2Instance -Region eu-west-1 -InstanceId $env:instid -Force;
+      foreach ($running in $runningEc2) {
+          Remove-EC2Instance -Region eu-west-1 -InstanceId $running -Force;
+      };
