@@ -165,7 +165,7 @@ before_deploy:
             Select-Object -Exp Value |
             Group-Object |
             Where-Object { $_.Name -eq "ok" } |
-            Select-Object -Exp Count) -ne $runningEc2.Length) {
+            Select-Object -Exp Count) -ne $runningEc2.Count) {
           Echo "Waiting for all instances to spin up, sleeping for 20...";
           Start-Sleep -s 20;
       };
