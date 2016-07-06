@@ -152,8 +152,13 @@ before_deploy:
       $env:instid = $instid[0].instanceid;
     # Wait a while to let the instance spin up.
   - ps: >-
-      "Waiting for EC2 instance...";
-      Start-Sleep -s 240;
+      while((Get-EC2InstanceStatus -Region eu-west-1 -InstanceId $env:instid |
+          Select-Object -Exp Status |
+          Select-Object -Exp Status |
+          Select-Object -Exp Value) -ne "ok" {
+        Echo "Waiting for instance to spin up, sleeping for 20.."    
+        Start-Sleep -s 20;
+      };
       "Done!";
 
 deploy:
