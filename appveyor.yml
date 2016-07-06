@@ -171,8 +171,6 @@ deploy:
   #bucket: wolrst
   #set_public: false
   #artifact: wol
-  #on:
-  #  branch: release # Only deploy on release
 
 # We need to cleanup our EC2 instances. Possibly sleep and check they are really dead.
 after_deploy:
