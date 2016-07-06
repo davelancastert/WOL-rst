@@ -138,7 +138,7 @@ artifacts:
 before_deploy:
     # Install AWS client for PS.
   - cmd: choco install awstools.powershell
-    # Set AWS credentials, send run instance request and record the instance ID.
+    # Set AWS credentials, send run instance request for each AMI we want and record the instance ID.
   - ps: >-
       $awsAmis = @("ami-f6ef7185", "ami-8fed73fc",  "ami-12e87661");
       $runningEc2 = New-Object System.Collections.ArrayList;
@@ -156,18 +156,20 @@ before_deploy:
               -UserData $env:payload | Select-Object -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
-      #    $env:instid = $instid[0].instanceid;
-    # Wait a while to let the instance spin up.
+    # Wait until the number of running instances whose AMIs are listed in $awsAmis with status ok maches the number of instances we launched.
   - ps: >-
-      Start-Sleep -s 240;
-      #while((Get-EC2InstanceStatus -Region eu-west-1 -InstanceId $env:instid |
-      #    Select-Object -Exp Status |
-      #    Select-Object -Exp Status |
-      #    Select-Object -Exp Value) -ne "ok") {
-      #  Echo "Waiting for instance to spin up, sleeping for 20.."    
-      #  Start-Sleep -s 20;
-      #};
-      "Done!";
+      while ((Get-EC2InstanceStatus -Region eu-west-1 |
+            Where-Object { $_.InstanceId -In $runningEc2 } |
+            Select-Object -Exp Status |
+            Select-Object -Exp Status |
+            Select-Object -Exp Value |
+            Group-Object |
+            Where-Object { $_.Name -eq "ok" } |
+            Select-Object -Exp Count) -ne $runningEc2.Length) {
+          Echo "Waiting for all instances to spin up, sleeping for 20...";
+          Start-Sleep -s 20;
+      };
+      Echo "Done!";
 
 deploy:
     # Deploy using the Appveyor Agent installed on the EC2 instance.
