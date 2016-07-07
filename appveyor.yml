@@ -109,9 +109,10 @@ before_deploy:
               -UserData $env:payload | Select-Object -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
-    # Wait until total running instances with IDs matching those we launched and status ok equals the number of instances we launched.
+    # Wait until total running instances with IDs matching those launched and status ok equals the number of instances launched.
   - ps: >-
-      Echo "Waiting for all deploy instances to enter the running state...";
+      Echo "Waiting for all deployment instances to enter the running state...";
+      $upSleep = 30;
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
             Where-Object { $_.InstanceId -In $runningEc2 } |
             Select-Object -Exp Status |
@@ -120,11 +121,11 @@ before_deploy:
             Group-Object |
             Where-Object { $_.Name -eq "ok" } |
             Select-Object -Exp Count) -ne $runningEc2.Count) {
-          Echo "Not all instances have completed spin up, sleeping for 20...";
-          Start-Sleep -s 20;
+          Echo "Not all instances have completed spin up, sleeping for $upSleep...";
+          Start-Sleep -s $upSleep;
       };
       Echo "Done!";
-
+      Start-Sleep -s 600;
 deploy:
     # Deploy using the Appveyor Agent installed on the EC2 instance.
   - provider: Environment
@@ -141,17 +142,18 @@ deploy:
   #set_public: false
   #artifact: wol
 
-# We need to cleanup our EC2 instances. Loop and sleep until they are all dead.
+# Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 after_deploy:
   - ps: >-
-      Echo "Killing deploy instances...";
+      Echo "Killing deployment instances...";
+      $downSleep = 5;
       foreach ($running in $runningEc2) {
           Remove-EC2Instance -Region eu-west-1 -InstanceId $running -Force;
       };
-      Echo "Waiting for all deploy instances to disappear...";
+      Echo "Waiting for all deployment instances to disappear...";
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
             Where-Object { $_.InstanceId -In $runningEc2 }) -ne $null) {
-          Echo "Not all instances have been terminated, sleeping for 20...";
-          Start-Sleep -s 20;
+          Echo "Not all instances have been terminated, sleeping for $downSleep...";
+          Start-Sleep -s $downSleep;
       };
       Echo "Done!";
