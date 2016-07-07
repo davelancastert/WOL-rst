@@ -1,30 +1,12 @@
 # Appveyor configuration template for Rust
 # https://github.com/starkat99/appveyor-rust
 
-## Operating System (VM environment) ##
+# Sample appveyor.yml to deploy artifacts to EC2 instances.
 
 # Rust needs at least Visual Studio 2013 Appveyor OS for MSVC targets.
 os: Visual Studio 2015
 
-## Build Matrix ##
-
-# This configuration will setup a build for each channel & target combination (12 windows
-# combinations in all).
-#
-# There are 3 channels: stable, beta, and nightly.
-#
-# Alternatively, the full version may be specified for the channel to build using that specific
-# version (e.g. channel: 1.5.0)
-#
-# The values for target are the set of windows Rust build targets. Each value is of the form
-#
-# ARCH-pc-windows-TOOLCHAIN
-#
-# Where ARCH is the target architecture, either x86_64 or i686, and TOOLCHAIN is the linker
-# toolchain to use, either msvc or gnu. See https://www.rust-lang.org/downloads.html#win-foot for
-# a description of the toolchain differences.
-#
-# Comment out channel/target combos you do not wish to build in CI.
+# Setup some encrypted keys for AWS access etc.
 environment:
   aws_id:
     secure: Y7Y8RtcP7vFH/IFMO+zsouVOwOijq2NxmUhSz+dnEHU=
@@ -76,43 +58,13 @@ environment:
   #  - channel: nightly
   #    target: i686-pc-windows-gnu
 
-### Allowed failures ###
-
-# See Appveyor documentation for specific details. In short, place any channel or targets you wish
-# to allow build failures on (usually nightly at least is a wise choice). This will prevent a build
-# or test failure in the matching channels/targets from failing the entire build.
-#matrix:
+# allow failures on this channel.
 #  allow_failures:
 #    - channel: nightly
 
-# If you only care about stable channel build failures, uncomment the following line:
-    #- channel: beta
-
-# 32-bit MSVC isn't stablized yet, so you may optionally allow failures there (uncomment line):
-    #- target: i686-pc-windows-msvc
-
-## Install Script ##
-
-# This is the most important part of the Appveyor configuration. This installs the version of Rust
-# specified by the 'channel' and 'target' environment variables from the build matrix. By default,
-# Rust will be installed to C:\Rust for easy usage, but this path can be overridden by setting the
-# RUST_INSTALL_DIR environment variable. The URL to download rust distributions defaults to
-# https://static.rust-lang.org/dist/ but can overridden by setting the RUST_DOWNLOAD_URL environment
-# variable.
-#
-# For simple configurations, instead of using the build matrix, you can override the channel and
-# target environment variables with the -channel and -target script arguments.
-#
-# If no channel or target arguments or environment variables are specified, will default to stable
-# channel and x86_64-pc-windows-msvc target.
-#
-# The file appveyor_rust_install.ps1 must exist in the root directory of the repository.
+# Install the rust versions required by the matrix.
 install:
 - ps: .\appveyor_rust_install.ps1
-
-# Alternative install command for simple configurations without build matrix (uncomment line and
-# comment above line):
-#- ps: .\appveyor_rust_install.ps1 -channel stable -target x86_64-pc-windows-msvc
 
 ## Build Script ##
 
@@ -145,10 +97,11 @@ before_deploy:
 
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
 
-      foreach ($inst in $awsAmis) {
+      Echo "Launching EC2 instances...";
+      foreach ($ami in $awsAmis) {
           $instid = New-EC2Instance `
               -Region eu-west-1 `
-              -ImageId $inst `
+              -ImageId $ami `
               -MinCount 1 `
               -MaxCount 1 `
               -KeyName Default `
@@ -156,8 +109,9 @@ before_deploy:
               -UserData $env:payload | Select-Object -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
-    # Wait until the number of running instances whose AMIs are listed in $awsAmis with status ok maches the number of instances we launched.
+    # Wait until total running instances with IDs matching those we launched and status ok equals the number of instances we launched.
   - ps: >-
+      Echo "Waiting for all deploy instances to enter the running state...";
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
             Where-Object { $_.InstanceId -In $runningEc2 } |
             Select-Object -Exp Status |
@@ -166,7 +120,7 @@ before_deploy:
             Group-Object |
             Where-Object { $_.Name -eq "ok" } |
             Select-Object -Exp Count) -ne $runningEc2.Count) {
-          Echo "Waiting for all instances to spin up, sleeping for 20...";
+          Echo "Not all instances have completed spin up, sleeping for 20...";
           Start-Sleep -s 20;
       };
       Echo "Done!";
@@ -187,9 +141,17 @@ deploy:
   #set_public: false
   #artifact: wol
 
-# We need to cleanup our EC2 instances. Possibly sleep and check they are really dead.
+# We need to cleanup our EC2 instances. Loop and sleep until they are all dead.
 after_deploy:
   - ps: >-
+      Echo "Killing deploy instances...";
       foreach ($running in $runningEc2) {
           Remove-EC2Instance -Region eu-west-1 -InstanceId $running -Force;
       };
+      Echo "Waiting for all deploy instances to disappear...";
+      while ((Get-EC2InstanceStatus -Region eu-west-1 |
+            Where-Object { $_.InstanceId -In $runningEc2 }) -ne $null) {
+          Echo "Not all instances have been terminated, sleeping for 20...";
+          Start-Sleep -s 20;
+      };
+      Echo "Done!";
