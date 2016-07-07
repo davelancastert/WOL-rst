@@ -145,7 +145,6 @@ deploy:
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 after_deploy:
   - ps: >-
-      Start-Sleep -s 650;
       Echo "Killing deployment instances...";
       $downSleep = 5;
       foreach ($running in $runningEc2) {
