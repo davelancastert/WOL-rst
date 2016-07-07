@@ -125,8 +125,9 @@ before_deploy:
           Start-Sleep -s $upSleep;
       };
       Echo "Done!";
+
 deploy:
-    # Deploy using the Appveyor Agent installed on the EC2 instance.
+    # Deploy using the Appveyor Agent installed on each EC2 instance.
   - provider: Environment
     name: Ec2
     on: 
