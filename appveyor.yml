@@ -106,7 +106,7 @@ before_deploy:
               -MaxCount 1 `
               -KeyName Default `
               -InstanceType t2.micro `
-              -UserData $env:payload | Select-Object -Exp instances;
+              -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
     # Wait until total running instances with IDs matching those launched and status ok equals the number of instances launched.
@@ -114,13 +114,13 @@ before_deploy:
       Echo "Waiting for all deployment instances to enter the running state...";
       $upSleep = 30;
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
-            Where-Object { $_.InstanceId -In $runningEc2 } |
-            Select-Object -Exp Status |
-            Select-Object -Exp Status |
-            Select-Object -Exp Value |
-            Group-Object |
-            Where-Object { $_.Name -eq "ok" } |
-            Select-Object -Exp Count) -ne $runningEc2.Count) {
+            Where { $_.InstanceId -In $runningEc2 } |
+            Select -Exp Status |
+            Select -Exp Status |
+            Select -Exp Value |
+            Group |
+            Where { $_.Name -eq "ok" } |
+            Select -Exp Count) -ne $runningEc2.Count) {
           Echo "Not all instances have completed spin up, sleeping for $upSleep...";
           Start-Sleep -s $upSleep;
       };
@@ -152,7 +152,7 @@ after_deploy:
       };
       Echo "Waiting for all deployment instances to disappear...";
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
-            Where-Object { $_.InstanceId -In $runningEc2 }) -ne $null) {
+            Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
           Echo "Not all instances have been terminated, sleeping for $downSleep...";
           Start-Sleep -s $downSleep;
       };
