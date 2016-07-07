@@ -125,7 +125,6 @@ before_deploy:
           Start-Sleep -s $upSleep;
       };
       Echo "Done!";
-      Start-Sleep -s 600;
 deploy:
     # Deploy using the Appveyor Agent installed on the EC2 instance.
   - provider: Environment
@@ -145,6 +144,7 @@ deploy:
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 after_deploy:
   - ps: >-
+      Start-Sleep -s 600;
       Echo "Killing deployment instances...";
       $downSleep = 5;
       foreach ($running in $runningEc2) {
