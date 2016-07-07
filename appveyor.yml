@@ -156,4 +156,4 @@ after_deploy:
           Echo "Not all instances have been terminated, sleeping for $downSleep...";
           Start-Sleep -s $downSleep;
       };
-      Echo "Done!";
+      Echo "All done!";
