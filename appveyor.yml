@@ -143,7 +143,7 @@ deploy:
   #artifact: wol
 
 deploy_script:
-  - ps: [system.environment]::MachineName;
+  - ps: hostname;
 
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 after_deploy:
