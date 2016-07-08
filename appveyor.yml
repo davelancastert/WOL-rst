@@ -142,6 +142,9 @@ deploy:
   #set_public: false
   #artifact: wol
 
+deploy_script:
+  - ps: Exit 0;
+
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 after_deploy:
   - ps: >-
