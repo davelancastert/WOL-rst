@@ -23,6 +23,9 @@ install:
 
 ## Build Script ##
 
+# This chunk is rust a test Rust project with some tests, details can be ignored.
+# Actual project would have different artifacts etc.
+
 # 'cargo test' takes care of building for us, so disable Appveyor's build stage. This prevents
 # the "directory does not contain a project or solution file" error.
 build: false
@@ -40,6 +43,12 @@ artifacts:
   - path: wol.zip
     name: wol
 
+# Before we attempt an environment based deploy we need to spin up a selection of EC2 instances.
+#
+# The workflow looks like:
+# 1. Set some AWS credentials.
+# 2. Spin up selection of EC2 instances.
+# 3. Loop until each instance reports status "ok" 
 before_deploy:
     # Install AWS client for PS.
   - cmd: choco install awstools.powershell
@@ -80,6 +89,10 @@ before_deploy:
       Echo "Done!";
 
 # This process is async to the rest of the build, don't expect a failed deploy to fail the build.
+# 
+# Notes:
+# 1. The environment will need setting up in advance via the web interface.
+# 2. The deployment agent is installed on each EC2 instance when we spin it up.
 deploy:
     # Deploy using the Appveyor Agent installed on each EC2 instance.
   - provider: Environment
@@ -87,22 +100,16 @@ deploy:
     on: 
       branch: master
 
+# Loop and sleep querying the deployment status via the published REST API.
+#
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
 #
-# Wait and query REST API for deployment status.
-#
 # ToDo:
-# 1. Get the deployment id of the current build via REST API call.
-# 2. Loop until we get a success or failure from the REST API.
-# 3. If we fail then notify (slack) and break out of the loop.
-# 4. If we succeed deploy to S3 using AWS Powershell and notify (slack) and break.
-# 5. Cleanup running EC2 instances (done).
-# 6. Finish up.
+# 1. If we fail then notify (slack) and break out of the loop.
+# 2. If we succeed deploy to S3 using AWS Powershell and notify (slack) and break.
 #
 # Stuff that will be useful:
 # Write-S3Object -BucketName foo -File bar;
-# Invoke-RestMethod -Uri foo -Headers bar - Method baz;
-# Loop and check deployment status, sleeping every 5 seconds.
 #
 # Notes:
 # 1. The REST API bearer token will need encrypting and adding to this file.
@@ -116,10 +123,7 @@ after_deploy:
           "Authorization" = "Bearer $env:av_api_token"
           "Content-type" = "application/json"
       };
-      Echo $env:APPVEYOR_BUILD_ID;
-      Echo $env:APPVEYOR_BUILD_NUMBER;
-      Echo $env:APPVEYOR_BUILD_VERSION;
-      Echo $env:APPVEYOR_JOB_ID;
+      
       Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
       :loop while($true) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
