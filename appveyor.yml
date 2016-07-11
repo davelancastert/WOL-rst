@@ -117,8 +117,8 @@ after_deploy:
           "Content-type" = "application/json"
       };
 
-      Echo "Checking deployment status for build $env:APPVEYOR_BUILD_VERSION...";
-      :loop while(1 -eq 2) {
+      Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
+      :loop while($true) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
             select -exp deployments | 
             select -exp deployment |  
