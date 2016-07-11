@@ -116,6 +116,9 @@ after_deploy:
           "Authorization" = "Bearer $env:av_api_token"
           "Content-type" = "application/json"
       };
+      Echo $env:APPVEYOR_BUILD_ID;
+      Echo $env:APPVEYOR_BUILD_NUMBER;
+      Echo $env:APPVEYOR_BUILD_VERSION;
       Echo $env:APPVEYOR_JOB_ID;
       Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
       :loop while($true) {
