@@ -111,6 +111,7 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
+      $uri = 'https://ci.appveyor.com/api/environments/9629/deployments' 
       $headers = @{
           "Authorization" = "Bearer $token"
           "Content-type" = "application/json"
@@ -119,6 +120,32 @@ after_deploy:
       Echo $env:APPVEYOR_BUILD_ID;
       Echo $env:APPVEYOR_BUILD_NUMBER;
       Echo $env:APPVEYOR_BUILD_VERSION;
+    
+      :loop while($true) {
+          switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
+            select -exp deployments | 
+            select -exp deployment |  
+            select -exp build | where { $_.buildId -eq $env:APPVEYOR_BUILD_ID } |
+            select -exp status)
+              {
+                  "success" { 
+                      Echo "Deployment complete...";
+                      break loop;
+                  }
+                  "failure" { 
+                      Echo "Deployment failed...";
+                      break loop;
+                  }
+                  "running" {
+                      Echo "Deployment running...";
+                      Start-Sleep -s 20;
+                  }
+                  default { 
+                      Echo "Waitng for feedback...";
+                      Start-Sleep -s 10;
+                  }
+              };
+      };
 
       Echo "Killing deployment instances...";
       $downSleep = 5;
