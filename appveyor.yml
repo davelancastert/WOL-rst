@@ -113,15 +113,15 @@ after_deploy:
   - ps: >-
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
-          "Authorization" = "Bearer $token"
+          "Authorization" = "Bearer $env:token"
           "Content-type" = "application/json"
       };
 
       Echo $env:APPVEYOR_BUILD_ID;
       Echo $env:APPVEYOR_BUILD_NUMBER;
       Echo $env:APPVEYOR_BUILD_VERSION;
-    
-      :loop while($true) {
+      Echo $headers;
+      :loop while(1 -eq 2) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
             select -exp deployments | 
             select -exp deployment |  
