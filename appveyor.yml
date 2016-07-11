@@ -1,6 +1,3 @@
-# Appveyor configuration template for Rust
-# https://github.com/starkat99/appveyor-rust
-
 # Sample appveyor.yml to deploy artifacts to EC2 instances.
 
 # Rust needs at least Visual Studio 2013 Appveyor OS for MSVC targets.
@@ -12,55 +9,13 @@ environment:
     secure: Y7Y8RtcP7vFH/IFMO+zsouVOwOijq2NxmUhSz+dnEHU=
   aws_key: 
     secure: Vp0uxHxQJVBJvpiE5N+uRI5kFLdGfiUrc7W8BtT8sJrtzC8wtRxE7vRJlT02R5Q5
+  av_api_token:
+    secure: ZLG9RkD/zj44wLjq0rQzE4+zuRORhwCGd5TPR/xJd9w=
   payload:
     secure: vhhT2Vk2L6FD6ARS0mXVJGYbh86AHB+ZhRFmwfud13pLE07LTS0vHCXlpyhf3NGb7hnqgbWReA2Bro7GI2thBID1AXjP1xfoINMCulXxKZNXycTBcZz08Q/+/3als+ocSwUs2OAGZyb1lEA9D+mYtfaQTiTgMGffJ150dDSZFFN0BfU2gJuuzYgFS41YllZUpk9JY87A3FfM/KYY73qrPt+r0zQT8TxlwW6xpQaLyk1q6xLLrFYM9Izvn8QAVhJfIxXVzNnjSpWdLTILD40VyYypvhLEYkYPhN2RLuwHDZiCONQFUHz9xgsvhYhzXffFfRNeJcL4SJaMyCOP0qFI1FSY2IVFZ0gL3h02IbQ9GgfnhDNCHM4foWtQqYjCc9cAVjdmWh8FYyH/7T/+d52RTXcfBlBa1iNWKe4aJCv2Iqg6M1Uuv4syQpqzmLqncbe4lIIdubjfNK61fOcwEEvy0A+WWr+r+bQgkP7nuViGucZnnLqq4axNJVGIYU97I4S/OCVnk5nBCu0uO7fY6oK/m+b/gr5Dh7j0aZF0CCFgolI=
   matrix:
-
-### MSVC Toolchains ###
-
-  # Stable 64-bit MSVC
     - channel: stable
       target: x86_64-pc-windows-msvc
-  # Stable 32-bit MSVC
-  #  - channel: stable
-  #    target: i686-pc-windows-msvc
-  # Beta 64-bit MSVC
-  #  - channel: beta
-  #    target: x86_64-pc-windows-msvc
-  # Beta 32-bit MSVC
-  #  - channel: beta
-  #    target: i686-pc-windows-msvc
-  # Nightly 64-bit MSVC
-  #  - channel: nightly
-  #    target: x86_64-pc-windows-msvc
-  # Nightly 32-bit MSVC
-  #  - channel: nightly
-  #    target: i686-pc-windows-msvc
-
-### GNU Toolchains ###
-
-  # Stable 64-bit GNU
-  #  - channel: stable
-  #    target: x86_64-pc-windows-gnu
-  # Stable 32-bit GNU
-  #  - channel: stable
-  #    target: i686-pc-windows-gnu
-  # Beta 64-bit GNU
-  #  - channel: beta
-  #    target: x86_64-pc-windows-gnu
-  # Beta 32-bit GNU
-  #  - channel: beta
-  #    target: i686-pc-windows-gnu
-  # Nightly 64-bit GNU
-  #  - channel: nightly
-  #    target: x86_64-pc-windows-gnu
-  # Nightly 32-bit GNU
-  #  - channel: nightly
-  #    target: i686-pc-windows-gnu
-
-# allow failures on this channel.
-#  allow_failures:
-#    - channel: nightly
 
 # Install the rust versions required by the matrix.
 install:
@@ -72,9 +27,7 @@ install:
 # the "directory does not contain a project or solution file" error.
 build: false
 
-# Uses 'cargo test' to run tests. Alternatively, the project may call compiled programs directly or
-# perform other testing commands. Rust will automatically be placed in the PATH environment
-# variable.
+# Run some tests
 test_script:
   - cmd: cargo test --verbose
 
@@ -126,26 +79,47 @@ before_deploy:
       };
       Echo "Done!";
 
+# This process is async to the rest of the build, don't expect a failed deploy to fail the build.
 deploy:
     # Deploy using the Appveyor Agent installed on each EC2 instance.
   - provider: Environment
     name: Ec2
     on: 
       branch: master
-  #- provider: Script
-  #provider: S3
-  #access_key_id: 
-  #  secure: Wy0XaYXX5CP2vmdJeIDIX8yRdYF1eB8NXHy3z+BOjfw=
-  #secret_access_key: 
-  #  secure: ZIAE9WYUQ5NfG+NL/PyD2MHrOFfn7+e9Keeg2shC06pbe43HTplb5h8Idielfn01
-  #bucket: wolrst
-  #set_public: false
-  #artifact: wol
 
 # Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
-# Possibly wait and query REST API for deployment status.
+#
+# Wait and query REST API for deployment status.
+#
+# ToDo:
+# 1. Get the deployment id of the current build via REST API call.
+# 2. Loop until we get a success or failure from the REST API.
+# 3. If we fail then notify (slack) and break out of the loop.
+# 4. If we succeed deploy to S3 using AWS Powershell and notify (slack) and break.
+# 5. Cleanup running EC2 instances (done).
+# 6. Finish up.
+#
+# Stuff that will be useful:
+# Write-S3Object -BucketName foo -File bar;
+# Invoke-RestMethod -Uri foo -Headers bar - Method baz;
+# Loop and check deployment status, sleeping every 5 seconds.
+#
+# Notes:
+# 1. The REST API bearer token will need encrypting and adding to this file.
+# 2. The IAM identity used by AWS Powershell will need access to some S3 functionality.
+# 3. It may be a good idea to encrypt the S3 bucket name as they are not namespaced.
+# 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
+      $headers = @{
+          "Authorization" = "Bearer $token"
+          "Content-type" = "application/json"
+      };
+
+      Echo $env.APPVEYOR_BUILD_ID;
+      Echo $env.APPVEYOR_BUILD_NUMBER;
+      Echo $env.APPVEYOR_BUILD_VERSION;
+
       Echo "Killing deployment instances...";
       $downSleep = 5;
       foreach ($running in $runningEc2) {
