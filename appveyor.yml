@@ -125,7 +125,7 @@ after_deploy:
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
             select -exp deployments | 
             select -exp deployment |  
-            select -exp build | where { $_.buildId -eq $env:APPVEYOR_BUILD_ID } |
+            where { $_.build.buildId -eq $env:APPVEYOR_BUILD_ID } |
             select -exp status)
               {
                   "success" { 
