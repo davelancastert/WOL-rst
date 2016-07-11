@@ -10,7 +10,7 @@ environment:
   aws_key: 
     secure: Vp0uxHxQJVBJvpiE5N+uRI5kFLdGfiUrc7W8BtT8sJrtzC8wtRxE7vRJlT02R5Q5
   av_api_token:
-    secure: ZLG9RkD/zj44wLjq0rQzE4+zuRORhwCGd5TPR/xJd9w=
+    secure: QLxR/TZtTMzGVOJjON8g3f0Cgj7IEAViSRuVZ3LR6HY=
   payload:
     secure: vhhT2Vk2L6FD6ARS0mXVJGYbh86AHB+ZhRFmwfud13pLE07LTS0vHCXlpyhf3NGb7hnqgbWReA2Bro7GI2thBID1AXjP1xfoINMCulXxKZNXycTBcZz08Q/+/3als+ocSwUs2OAGZyb1lEA9D+mYtfaQTiTgMGffJ150dDSZFFN0BfU2gJuuzYgFS41YllZUpk9JY87A3FfM/KYY73qrPt+r0zQT8TxlwW6xpQaLyk1q6xLLrFYM9Izvn8QAVhJfIxXVzNnjSpWdLTILD40VyYypvhLEYkYPhN2RLuwHDZiCONQFUHz9xgsvhYhzXffFfRNeJcL4SJaMyCOP0qFI1FSY2IVFZ0gL3h02IbQ9GgfnhDNCHM4foWtQqYjCc9cAVjdmWh8FYyH/7T/+d52RTXcfBlBa1iNWKe4aJCv2Iqg6M1Uuv4syQpqzmLqncbe4lIIdubjfNK61fOcwEEvy0A+WWr+r+bQgkP7nuViGucZnnLqq4axNJVGIYU97I4S/OCVnk5nBCu0uO7fY6oK/m+b/gr5Dh7j0aZF0CCFgolI=
   matrix:
@@ -117,10 +117,7 @@ after_deploy:
           "Content-type" = "application/json"
       };
 
-      Echo $env:APPVEYOR_BUILD_ID;
-      Echo $env:APPVEYOR_BUILD_NUMBER;
-      Echo $env:APPVEYOR_BUILD_VERSION;
-      Echo $headers;
+      Echo "Checking deployment status for build $env:APPVEYOR_BUILD_VERSION...";
       :loop while(1 -eq 2) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
             select -exp deployments | 
