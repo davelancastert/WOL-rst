@@ -116,7 +116,7 @@ after_deploy:
           "Authorization" = "Bearer $env:av_api_token"
           "Content-type" = "application/json"
       };
-
+      Echo $env:APPVEYOR_JOB_ID;
       Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
       :loop while($true) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
