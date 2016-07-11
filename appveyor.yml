@@ -116,9 +116,9 @@ after_deploy:
           "Content-type" = "application/json"
       };
 
-      Echo $env.APPVEYOR_BUILD_ID;
-      Echo $env.APPVEYOR_BUILD_NUMBER;
-      Echo $env.APPVEYOR_BUILD_VERSION;
+      Echo $env:APPVEYOR_BUILD_ID;
+      Echo $env:APPVEYOR_BUILD_NUMBER;
+      Echo $env:APPVEYOR_BUILD_VERSION;
 
       Echo "Killing deployment instances...";
       $downSleep = 5;
