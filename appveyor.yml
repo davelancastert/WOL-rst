@@ -137,7 +137,7 @@ after_deploy:
   - ps: >-
       foreach($artifact in $artifacts) {
           Echo $artifact.name;
-      };;
+      };
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
           "Authorization" = "Bearer $env:av_api_token"
