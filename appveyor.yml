@@ -30,6 +30,9 @@ environment:
     secure: QLxR/TZtTMzGVOJjON8g3f0Cgj7IEAViSRuVZ3LR6HY=
   payload:
     secure: vhhT2Vk2L6FD6ARS0mXVJGYbh86AHB+ZhRFmwfud13pLE07LTS0vHCXlpyhf3NGb7hnqgbWReA2Bro7GI2thBID1AXjP1xfoINMCulXxKZNXycTBcZz08Q/+/3als+ocSwUs2OAGZyb1lEA9D+mYtfaQTiTgMGffJ150dDSZFFN0BfU2gJuuzYgFS41YllZUpk9JY87A3FfM/KYY73qrPt+r0zQT8TxlwW6xpQaLyk1q6xLLrFYM9Izvn8QAVhJfIxXVzNnjSpWdLTILD40VyYypvhLEYkYPhN2RLuwHDZiCONQFUHz9xgsvhYhzXffFfRNeJcL4SJaMyCOP0qFI1FSY2IVFZ0gL3h02IbQ9GgfnhDNCHM4foWtQqYjCc9cAVjdmWh8FYyH/7T/+d52RTXcfBlBa1iNWKe4aJCv2Iqg6M1Uuv4syQpqzmLqncbe4lIIdubjfNK61fOcwEEvy0A+WWr+r+bQgkP7nuViGucZnnLqq4axNJVGIYU97I4S/OCVnk5nBCu0uO7fY6oK/m+b/gr5Dh7j0aZF0CCFgolI=
+  s3bucket: rst-test
+  aws_region: eu-west-1
+  ec2instType: t2.micro
   matrix:
     - channel: stable
       target: x86_64-pc-windows-msvc
@@ -89,7 +92,7 @@ before_deploy:
               -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
-    # Wait until total running instances with our IDs and status ok equals the number of instances launched.
+    # Wait until total running instances with our IDs + status ok equals the number of instances launched.
   - ps: >-
       Echo "Waiting for all deployment instances to enter the running state...";
       $upSleep = 30;
@@ -135,8 +138,8 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
-      foreach($artifact in $artifacts) {
-          Echo $artifact.name;
+      foreach($artifact in $artifacts.Keys) {
+          Echo $artifact;
       };
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
@@ -155,7 +158,7 @@ after_deploy:
               {
                   "success" { 
                       Echo "Deployment complete...";
-                      Write-S3Object -Region eu-west-1 -BucketName rst-test -File wol.zip;
+                      Write-S3Object -Region eu-west-1 -BucketName $env:s3bucket -File wol.zip;
                       break loop;
                   }
                   "failure" { 
