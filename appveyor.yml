@@ -83,12 +83,12 @@ before_deploy:
 
       foreach ($ami in $awsAmis) {
           $instid = New-EC2Instance `
-              -Region eu-west-1 `
+              -Region $env:aws_region `
               -ImageId $ami `
               -MinCount 1 `
               -MaxCount 1 `
               -KeyName Default `
-              -InstanceType t2.micro `
+              -InstanceType $env:ec2instType `
               -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
@@ -97,7 +97,7 @@ before_deploy:
       Echo "Waiting for all deployment instances to enter the running state...";
       $upSleep = 30;
 
-      while ((Get-EC2InstanceStatus -Region eu-west-1 |
+      while ((Get-EC2InstanceStatus -Region $env:aws_region |
             Where { $_.InstanceId -In $runningEc2 } |
             Select -Exp Status |
             Select -Exp Status |
@@ -139,7 +139,7 @@ deploy:
 after_deploy:
   - ps: >-
       foreach($artifact in $artifacts.Keys) {
-          Echo $artifact;
+          Echo $artifact.path;
       };
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
@@ -158,7 +158,7 @@ after_deploy:
               {
                   "success" { 
                       Echo "Deployment complete...";
-                      Write-S3Object -Region eu-west-1 -BucketName $env:s3bucket -File wol.zip;
+                      Write-S3Object -Region $env:aws_region -BucketName $env:s3bucket -File wol.zip;
                       break loop;
                   }
                   "failure" { 
@@ -180,12 +180,12 @@ after_deploy:
       $downSleep = 5;
 
       foreach ($running in $runningEc2) {
-          Remove-EC2Instance -Region eu-west-1 -InstanceId $running -Force;
+          Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
       };
 
       Echo "Waiting for all deployment instances to disappear...";
 
-      while ((Get-EC2InstanceStatus -Region eu-west-1 |
+      while ((Get-EC2InstanceStatus -Region $env:aws_region |
             Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
           Echo "Not all instances have been terminated, sleeping for $downSleep...";
           Start-Sleep -s $downSleep;
