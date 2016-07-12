@@ -135,7 +135,9 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
-      Echo $artifacts;
+      foreach($artifact in $artifacts) {
+          Echo $artifact;
+      };;
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
           "Authorization" = "Bearer $env:av_api_token"
