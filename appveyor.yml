@@ -1,4 +1,21 @@
 # Sample appveyor.yml to deploy artifacts to EC2 instances.
+#
+# You will need to setup the following in advance:
+# 1. A set of IAM credentials with access to EC2 and S3.
+# 2. A base 64 encoded payload for the EC2 instances containing the install command for Appveyor Deplyment Agent and key.
+# 3. A bearer token for the Appveyor REST api.
+# 4. The details of an S3 bucket to deploy to after completing the EC2 testing.
+# 5. A named Appveyor Deployment Agent environment. 
+#
+# ToDo:
+# 1. Add notifications via Slack.
+# 2. Deploy to S3.
+# 3. Do our best to ensure we don't leave any orphaned Ec2 instances.
+# 4. Cleanup and refactor.
+# 5. Add more complete test harness for actuall installation of the artifacts on the test EC2 instances.
+#
+# Note: 
+# As a POC this is running on a Rust project using free tier AWS so ignore the details for the install/test/after_test sections.
 
 # Rust needs at least Visual Studio 2013 Appveyor OS for MSVC targets.
 os: Visual Studio 2015
@@ -47,8 +64,8 @@ artifacts:
 #
 # The workflow looks like:
 # 1. Set some AWS credentials.
-# 2. Spin up selection of EC2 instances.
-# 3. Loop until each instance reports status "ok" 
+# 2. Spin up selection of EC2 instances and record the instance ID.
+# 3. Loop until each instance reports status "ok".
 before_deploy:
     # Install AWS client for PS.
   - cmd: choco install awstools.powershell
@@ -60,6 +77,7 @@ before_deploy:
       Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
 
       Echo "Launching EC2 instances...";
+
       foreach ($ami in $awsAmis) {
           $instid = New-EC2Instance `
               -Region eu-west-1 `
@@ -75,6 +93,7 @@ before_deploy:
   - ps: >-
       Echo "Waiting for all deployment instances to enter the running state...";
       $upSleep = 30;
+
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
             Where { $_.InstanceId -In $runningEc2 } |
             Select -Exp Status |
@@ -86,13 +105,14 @@ before_deploy:
           Echo "Not all instances have completed spin up, sleeping for $upSleep...";
           Start-Sleep -s $upSleep;
       };
+
       Echo "Done!";
 
 # This process is async to the rest of the build, don't expect a failed deploy to fail the build.
 # 
 # Notes:
 # 1. The environment will need setting up in advance via the web interface.
-# 2. The deployment agent is installed on each EC2 instance when we spin it up.
+# 2. The deployment agent is installed on each EC2 instance when we spin it up via the User Data param.
 deploy:
     # Deploy using the Appveyor Agent installed on each EC2 instance.
   - provider: Environment
@@ -125,6 +145,7 @@ after_deploy:
       };
       
       Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
+
       :loop while($true) {
           switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
             select -exp deployments | 
@@ -153,13 +174,17 @@ after_deploy:
 
       Echo "Killing deployment instances...";
       $downSleep = 5;
+
       foreach ($running in $runningEc2) {
           Remove-EC2Instance -Region eu-west-1 -InstanceId $running -Force;
       };
+
       Echo "Waiting for all deployment instances to disappear...";
+
       while ((Get-EC2InstanceStatus -Region eu-west-1 |
             Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
           Echo "Not all instances have been terminated, sleeping for $downSleep...";
           Start-Sleep -s $downSleep;
       };
+
       Echo "done!";
