@@ -9,14 +9,13 @@
 #
 # ToDo:
 # 1. Add notifications via Slack.
-# 2. Deploy to S3.
-# 3. Do our best to ensure we don't leave any orphaned Ec2 instances.
-# 4. Cleanup and refactor.
-# 5. Add more complete test harness for actuall installation of the artifacts on the test EC2 instances.
-# 6. Check git branch and only run the Ec2 deploy/test cycle on master/release/whatever.
+# 2. Do our best to ensure we don't leave any orphaned Ec2 instances.
+# 3. Cleanup and refactor.
+# 4. Add more complete test harness for actuall installation of the artifacts on the test EC2 instances.
+# 5. Check git branch and only run the Ec2 deploy/test cycle on master/release/whatever.
 #
 # Note: 
-# As a POC this is running on a Rust project using free tier AWS so ignore the details for the install/test/after_test sections.
+# As a POC this is building a Rust project using free tier AWS so ignore the details for the install/test/after_test sections.
 
 # Rust needs at least Visual Studio 2013 Appveyor OS for MSVC targets.
 os: Visual Studio 2015
@@ -41,7 +40,7 @@ install:
 
 ## Build Script ##
 
-# This chunk is rust a test Rust project with some tests, details can be ignored.
+# This chunk is a Rust project with some tests, details can be ignored.
 # Actual project would have different artifacts etc.
 
 # 'cargo test' takes care of building for us, so disable Appveyor's build stage. This prevents
@@ -90,7 +89,7 @@ before_deploy:
               -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
       };
-    # Wait until total running instances with IDs matching those launched and status ok equals the number of instances launched.
+    # Wait until total running instances with our IDs and status ok equals the number of instances launched.
   - ps: >-
       Echo "Waiting for all deployment instances to enter the running state...";
       $upSleep = 30;
@@ -129,9 +128,6 @@ deploy:
 # 1. If we fail then notify (slack) and break out of the loop.
 # 2. If we succeed deploy to S3 using AWS Powershell and notify (slack) and break.
 #
-# Stuff that will be useful:
-# Write-S3Object -BucketName foo -File bar;
-#
 # Notes:
 # 1. The REST API bearer token will need encrypting and adding to this file.
 # 2. The IAM identity used by AWS Powershell will need access to some S3 functionality.
@@ -139,6 +135,7 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
+      Echo $artifacts;
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
           "Authorization" = "Bearer $env:av_api_token"
