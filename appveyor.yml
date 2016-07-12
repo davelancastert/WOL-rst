@@ -13,6 +13,7 @@
 # 3. Do our best to ensure we don't leave any orphaned Ec2 instances.
 # 4. Cleanup and refactor.
 # 5. Add more complete test harness for actuall installation of the artifacts on the test EC2 instances.
+# 6. Check git branch and only run the Ec2 deploy/test cycle on master/release/whatever.
 #
 # Note: 
 # As a POC this is running on a Rust project using free tier AWS so ignore the details for the install/test/after_test sections.
@@ -155,6 +156,7 @@ after_deploy:
               {
                   "success" { 
                       Echo "Deployment complete...";
+                      Write-S3Object -Region eu-west-1 -BucketName rst-test -File wol.zip;
                       break loop;
                   }
                   "failure" { 
