@@ -33,6 +33,7 @@ environment:
   s3bucket: rst-test
   aws_region: eu-west-1
   ec2instType: t2.micro
+  projectUri: 'https://ci.appveyor.com/api/environments/9629/deployments'
   matrix:
     - channel: stable
       target: x86_64-pc-windows-msvc
@@ -62,8 +63,6 @@ artifacts:
   # upload our archive as an artifact so it is available to deploy
   - path: wol.zip
     name: wol
-  - path: target\release\wol.exe
-    name: wol2
 
 # Before we attempt an environment based deploy we need to spin up a selection of EC2 instances.
 #
@@ -140,7 +139,6 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
-      $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
           "Authorization" = "Bearer $env:av_api_token"
           "Content-type" = "application/json"
@@ -149,7 +147,7 @@ after_deploy:
       Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
 
       :loop while($true) {
-          switch(Invoke-RestMethod -Uri $uri -Headers $headers -Method Get |
+          switch(Invoke-RestMethod -Uri $env:projectUri -Headers $headers -Method Get |
             select -exp deployments | 
             select -exp deployment |  
             where { $_.build.buildId -eq $env:APPVEYOR_BUILD_ID } |
