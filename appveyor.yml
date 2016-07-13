@@ -139,7 +139,7 @@ deploy:
 after_deploy:
   - ps: >-
       foreach($artifact in $artifacts.Values) {
-          Echo $artifact;
+          Echo $artifact.path;
       };
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
