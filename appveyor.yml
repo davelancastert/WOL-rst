@@ -138,8 +138,8 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
-      foreach($artifact in $artifacts.Keys) {
-          Echo $artifact.path;
+      foreach($artifact in $artifacts.Values) {
+          Echo $artifact;
       };
       $uri = 'https://ci.appveyor.com/api/environments/9629/deployments'; 
       $headers = @{
