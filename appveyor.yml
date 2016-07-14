@@ -193,4 +193,4 @@ after_deploy:
           Start-Sleep -s $downSleep;
       };
 
-      Echo "done!";
+      Echo "All done!";
