@@ -60,11 +60,14 @@ after_test:
   - cmd: 7z a wol.zip target\release\wol.exe # zip it up
   - cmd: 7z a wol.zip deploy.ps1 # zip it up
   - cmd: 7z a wol.zip before-deploy.ps1 # zip it up
+  - cmd: 7z a service.zip service # zip it up
 
 artifacts:
   # upload our archive as an artifact so it is available to deploy
   - path: wol.zip
     name: wol
+  - path: service.zip
+    name: service
 
 # Before we attempt an environment based deploy we need to spin up a selection of EC2 instances.
 #
