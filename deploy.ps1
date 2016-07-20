@@ -1,1 +1,2 @@
-Exit 1;
+Echo "Waiting...";
+Start-Sleep -s 600;
