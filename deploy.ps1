@@ -1,2 +1,3 @@
 Echo "Waiting...";
-Start-Sleep -s 600;
+Start-Sleep -s 60;
+$host.SetShouldExit(1);
