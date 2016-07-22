@@ -114,7 +114,7 @@ before_deploy:
           Echo "Not all instances have completed spin up, sleeping for $upSleep...";
           Start-Sleep -s $upSleep;
       };
-
+      Start-Sleep -s 600;
       Echo "Done!";
 
 # This process is async to the rest of the build, don't expect a failed deploy to fail the build.
