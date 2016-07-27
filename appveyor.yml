@@ -94,7 +94,7 @@ before_deploy:
               -MinCount 1 `
               -MaxCount 1 `
               -KeyName Default `
-              -SecurityGroup deploy `
+              -InstanceProfile Build `
               -InstanceType $env:ec2instType `
               -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
@@ -115,7 +115,6 @@ before_deploy:
           Echo "Not all instances have completed spin up, sleeping for $upSleep...";
           Start-Sleep -s $upSleep;
       };
-      Start-Sleep -s 1200;
       Echo "Done!";
 
 # This process is async to the rest of the build, don't expect a failed deploy to fail the build.
