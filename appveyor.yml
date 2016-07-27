@@ -94,7 +94,7 @@ before_deploy:
               -MinCount 1 `
               -MaxCount 1 `
               -KeyName Default `
-              -InstanceProfile Build `
+              -InstanceProfile_Name Build `
               -InstanceType $env:ec2instType `
               -UserData $env:payload | Select -Exp instances;
           $runningEc2.Add($instid[0].instanceid);
