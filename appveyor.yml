@@ -187,9 +187,9 @@ after_deploy:
       Echo "Killing deployment instances...";
       $downSleep = 5;
 
-      #foreach ($running in $runningEc2) {
-      #    Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
-      #};
+      foreach ($running in $runningEc2) {
+          Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
+      };
 
       Echo "Waiting for all deployment instances to disappear...";
 
