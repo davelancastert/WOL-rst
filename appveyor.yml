@@ -33,6 +33,7 @@ environment:
   s3bucket: rst-test
   aws_region: eu-west-1
   ec2instType: t2.micro
+  testBranch: master
   projectUri: 'https://ci.appveyor.com/api/environments/9629/deployments'
   matrix:
     - channel: stable
@@ -80,43 +81,46 @@ before_deploy:
   - cmd: choco install awstools.powershell
     # Set AWS credentials, send run instance request for each AMI we want and record the instance ID.
   - ps: >-
-      Echo $env:APPVEYOR_REPO_BRANCH;
-      $awsAmis = @("ami-f6ef7185", "ami-8fed73fc",  "ami-12e87661");
-      $runningEc2 = New-Object System.Collections.ArrayList;
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          $awsAmis = @("ami-f6ef7185", "ami-8fed73fc",  "ami-12e87661");
+          $runningEc2 = New-Object System.Collections.ArrayList;
 
-      Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+          Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
 
-      Echo "Launching EC2 instances...";
+          Echo "Launching EC2 instances...";
 
-      foreach ($ami in $awsAmis) {
-          $instid = New-EC2Instance `
-              -Region $env:aws_region `
-              -ImageId $ami `
-              -MinCount 1 `
-              -MaxCount 1 `
-              -KeyName Default `
-              -InstanceProfile_Name Build `
-              -InstanceType $env:ec2instType `
-              -UserData $env:payload | Select -Exp instances;
-          $runningEc2.Add($instid[0].instanceid);
-      };
+          foreach ($ami in $awsAmis) {
+              $instid = New-EC2Instance `
+                  -Region $env:aws_region `
+                  -ImageId $ami `
+                  -MinCount 1 `
+                  -MaxCount 1 `
+                  -KeyName Default `
+                  -InstanceProfile_Name Build `
+                  -InstanceType $env:ec2instType `
+                  -UserData $env:payload | Select -Exp instances;
+              $runningEc2.Add($instid[0].instanceid);
+          };
+        }; 
     # Wait until total running instances with our IDs + status ok equals the number of instances launched.
   - ps: >-
-      Echo "Waiting for all deployment instances to enter the running state...";
-      $upSleep = 30;
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          Echo "Waiting for all deployment instances to enter the running state...";
+          $upSleep = 30;
 
-      while ((Get-EC2InstanceStatus -Region $env:aws_region |
-            Where { $_.InstanceId -In $runningEc2 } |
-            Select -Exp Status |
-            Select -Exp Status |
-            Select -Exp Value |
-            Group |
-            Where { $_.Name -eq "ok" } |
-            Select -Exp Count) -ne $runningEc2.Count) {
-          Echo "Not all instances have completed spin up, sleeping for $upSleep...";
-          Start-Sleep -s $upSleep;
+          while ((Get-EC2InstanceStatus -Region $env:aws_region |
+                Where { $_.InstanceId -In $runningEc2 } |
+                Select -Exp Status |
+                Select -Exp Status |
+                Select -Exp Value |
+                Group |
+                Where { $_.Name -eq "ok" } |
+                Select -Exp Count) -ne $runningEc2.Count) {
+              Echo "Not all instances have completed spin up, sleeping for $upSleep...";
+              Start-Sleep -s $upSleep;
+          };
+          Echo "Done!";
       };
-      Echo "Done!";
 
 # This process is async to the rest of the build, don't expect a failed deploy to fail the build.
 # 
@@ -145,58 +149,60 @@ deploy:
 # 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
 after_deploy:
   - ps: >-
-      $headers = @{
-          "Authorization" = "Bearer $env:av_api_token"
-          "Content-type" = "application/json"
-      };
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          $headers = @{
+              "Authorization" = "Bearer $env:av_api_token"
+              "Content-type" = "application/json"
+          };
       
-      Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
+          Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
 
-      :loop while($true) {
-          switch(Invoke-RestMethod -Uri $env:projectUri -Headers $headers -Method Get |
-            select -exp deployments | 
-            select -exp deployment |  
-            where { $_.build.buildId -eq $env:APPVEYOR_BUILD_ID } |
-            select -exp status)
-              {
-                  "success" { 
-                      Echo "Deployment complete, uploading artifacts to s3...";
-                      foreach($artifact in $artifacts.Values) {
-                          Write-S3Object `
-                            -Region $env:aws_region `
-                            -BucketName $env:s3bucket `
-                            -File $artifact.path;
-                      };
-                      break loop;
-                  }
-                  "failed" { 
-                      Echo "Deployment failed...";
-                      break loop;
-                  }
-                  "running" {
-                      Echo "Deployment running...";
-                      Start-Sleep -s 20;
-                  }
-                  default { 
-                      Echo "Waitng for feedback...";
-                      Start-Sleep -s 10;
-                  }
-              };
-      };
+          :loop while($true) {
+              switch(Invoke-RestMethod -Uri $env:projectUri -Headers $headers -Method Get |
+                select -exp deployments | 
+                select -exp deployment |  
+                where { $_.build.buildId -eq $env:APPVEYOR_BUILD_ID } |
+                select -exp status)
+                  {
+                      "success" { 
+                          Echo "Deployment complete, uploading artifacts to s3...";
+                          foreach($artifact in $artifacts.Values) {
+                              Write-S3Object `
+                                -Region $env:aws_region `
+                                -BucketName $env:s3bucket `
+                                -File $artifact.path;
+                          };
+                          break loop;
+                      }
+                      "failed" { 
+                          Echo "Deployment failed...";
+                          break loop;
+                      }
+                      "running" {
+                          Echo "Deployment running...";
+                          Start-Sleep -s 20;
+                      }
+                      default { 
+                          Echo "Waitng for feedback...";
+                          Start-Sleep -s 10;
+                      }
+                  };
+          };
 
-      Echo "Killing deployment instances...";
-      $downSleep = 5;
+          Echo "Killing deployment instances...";
+          $downSleep = 5;
 
-      foreach ($running in $runningEc2) {
-          Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
-      };
+          foreach ($running in $runningEc2) {
+              Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
+          };
 
-      Echo "Waiting for all deployment instances to disappear...";
+          Echo "Waiting for all deployment instances to disappear...";
 
-      while ((Get-EC2InstanceStatus -Region $env:aws_region |
-            Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
-          Echo "Not all instances have been terminated, sleeping for $downSleep...";
-          Start-Sleep -s $downSleep;
-      };
+          while ((Get-EC2InstanceStatus -Region $env:aws_region |
+                Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
+              Echo "Not all instances have been terminated, sleeping for $downSleep...";
+              Start-Sleep -s $downSleep;
+          };
 
-      Echo "Done!";
+          Echo "Done!";
+      }; 
