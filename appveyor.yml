@@ -65,7 +65,7 @@ after_test:
 
 artifacts:
   # upload our archive as an artifact so it is available to deploy
-  - path: wol.zip
+  - path: '*\wol.zip'
     name: wol
   - path: service.zip
     name: service
