@@ -29,7 +29,7 @@ environment:
   av_api_token:
     secure: QLxR/TZtTMzGVOJjON8g3f0Cgj7IEAViSRuVZ3LR6HY=
   payload:
-    secure: vhhT2Vk2L6FD6ARS0mXVJGYbh86AHB+ZhRFmwfud13pLE07LTS0vHCXlpyhf3NGb7hnqgbWReA2Bro7GI2thBID1AXjP1xfoINMCulXxKZNXycTBcZz08Q/+/3als+ocSwUs2OAGZyb1lEA9D+mYtfaQTiTgMGffJ150dDSZFFN0BfU2gJuuzYgFS41YllZUpk9JY87A3FfM/KYY73qrPt+r0zQT8TxlwW6xpQaLyk1q6xLLrFYM9Izvn8QAVhJfIxXVzNnjSpWdLTILD40VyYypvhLEYkYPhN2RLuwHDZiCONQFUHz9xgsvhYhzXffFfRNeJcL4SJaMyCOP0qFI1FSY2IVFZ0gL3h02IbQ9GgfnhDNCHM4foWtQqYjCc9cAVjdmWh8FYyH/7T/+d52RTXcfBlBa1iNWKe4aJCv2Iqg6M1Uuv4syQpqzmLqncbe4lIIdubjfNK61fOcwEEvy0A+WWr+r+bQgkP7nuViGucZnnLqq4axNJVGIYU97I4S/OCVnk5nBCu0uO7fY6oK/m+b/gr5Dh7j0aZF0CCFgolI=
+    secure: yYnHC/h3QKfWv1i5Knfkz/xw0aO7JRHY/L/DUrjuQ0SI/FSBYQuUNlSIhG//VIABqNzsugz0VP51aeeTxqPYuQ1ZpmRjJ/ZVrdBHaShzy671U4Ij1bE6UCcwf0bgVkhPbUOp0paHNboPblRuBAshrbqIsZQ6jozffHVHLogAqX2c8MSim8gTJtvWM4IIGIOkvz/x79T+aDORebdmnUNcH4ztcg2K/svTSqcuDgwN8SHK887WMIWBOlf78CBlKw3qJYUN7QXOYFkM0lCnKW7ZUcjPzlym8heLNaHZJrGfw14OElYFd45p5CkMdXmgf4ZAP7ZXkOfA+UT69pZZmhExJfIsMeGX2o7KgqzZliQ0rBr9HjgG3b3fek70Qqq8vpr7MVngL+y5aM508ZAogJJxeT1sJg1VA12KkCIxyZM3KNd26+o6otY7sMyZCNA6l+EiUmseV0JNmbpj8nEpYp5ED1eRgyKG4kPbiwF1UFP1rrW9j8eYyXX65rnla7o370YoQ93LmHdoBiO0vdojBCpPqg==
   s3bucket: rst-test
   aws_region: eu-west-1
   ec2instType: t2.micro
@@ -65,9 +65,9 @@ after_test:
 
 artifacts:
   # upload our archive as an artifact so it is available to deploy
-  - path: '*\wol.zip'
+  - path: wol.zip
     name: wol
-  - path: '*\service.zip'
+  - path: service.zip
     name: service
 
 # Before we attempt an environment based deploy we need to spin up a selection of EC2 instances.

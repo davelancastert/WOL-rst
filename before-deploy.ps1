@@ -1,1 +1,1 @@
-Exit 1;
+Echo $env:test;
