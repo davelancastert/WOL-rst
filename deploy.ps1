@@ -11,5 +11,7 @@ add-type @"
     }
 "@;
 
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy;
+
 Start-Sleep -s 60;
 throw "Deployment failed..."
