@@ -82,7 +82,7 @@ before_deploy:
     # Set AWS credentials, send run instance request for each AMI we want and record the instance ID.
   - ps: >-
       if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
-          $awsAmis = @("ami-f6ef7185", "ami-8fed73fc",  "ami-12e87661");
+          $awsAmis = @("ami-f6ef7185");
           $runningEc2 = New-Object System.Collections.ArrayList;
 
           Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
