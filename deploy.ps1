@@ -1,3 +1,3 @@
 Echo "Starting...";
 
-Import-Module -Name $env:APPLICATION_PATH\Tunable-SSL-Validator\TunableSSLValidator.psm1;
+add-type -Path $env:APPLICATION_PATH\disableCertValidate.dll;
