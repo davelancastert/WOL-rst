@@ -1,3 +1,3 @@
 Echo "Starting...";
-Echo $env:APPLICATION_PATH;
-Import-Module -Name .\Tunable-SSL-Validator\TunableSSLValidator.psm1;
+
+Import-Module -Name $env:APPLICATION_PATH\Tunable-SSL-Validator\TunableSSLValidator.psm1;
