@@ -134,6 +134,10 @@ deploy:
     name: Ec2
     on: 
       branch: master
+  - provider: Environment
+    name: S3 Bucket
+    on: 
+      branch: master
 
 # Loop and sleep querying the deployment status via the published REST API.
 #
@@ -167,12 +171,6 @@ after_deploy:
                   {
                       "success" { 
                           Echo "Deployment complete, uploading artifacts to s3...";
-                          foreach($artifact in $artifacts.Values) {
-                              Write-S3Object `
-                                -Region $env:aws_region `
-                                -BucketName $env:s3bucket `
-                                -File $artifact.path;
-                          };
                           break loop;
                       }
                       "failed" { 
@@ -206,4 +204,11 @@ after_deploy:
           };
 
           Echo "Done!";
-      }; 
+      };
+ 
+#                          foreach($artifact in $artifacts.Values) {
+#                              Write-S3Object `
+#                                -Region $env:aws_region `
+#                                -BucketName $env:s3bucket `
+#                                -File $artifact.path;
+#                          };
