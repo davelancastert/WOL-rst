@@ -79,7 +79,7 @@ artifacts:
 # 3. Loop until each instance reports status "ok".
 before_deploy:
     # Install AWS client for PS.
-  - cmd: choco install awstools.powershell
+  - cmd: choco install awstools.powershell -y
     # Set AWS credentials, send run instance request for each AMI we want and record the instance ID.
   - ps: >-
       if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
