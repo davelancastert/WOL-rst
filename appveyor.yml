@@ -66,6 +66,7 @@ after_test:
   - ps: >-
       if([String]::IsNullOrEmpty($env:APPVEYOR_PULL_REQUEST_NUMBER) -eq $false){
         Echo $env:APPVEYOR_PULL_REQUEST_NUMBER;
+        Echo [String]::IsNullOrEmpty($env:APPVEYOR_PULL_REQUEST_NUMBER);
       } else {
         Echo "No PR number found";
       };
