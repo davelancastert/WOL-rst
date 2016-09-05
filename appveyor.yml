@@ -33,7 +33,7 @@ environment:
   s3bucket: rst-test
   aws_region: eu-west-1
   ec2instType: t2.micro
-  testBranch: master
+  testBranch: bin
   projectUri: 'https://ci.appveyor.com/api/environments/9629/deployments'
   matrix:
     - channel: stable
@@ -63,6 +63,12 @@ after_test:
   - cmd: 7z a service.zip deploy.ps1 # zip it up
   - cmd: 7z a service.zip before-deploy.ps1 # zip it up
   - cmd: 7z a service.zip disableCertValidate.dll
+  - ps: >-
+      if([String]::IsNullOrEmpty($env:APPVEYOR_PULL_REQUEST_NUMBER) -eq $false){
+        Echo $env:APPVEYOR_PULL_REQUEST_NUMBER;
+      } else {
+        Echo "No PR number found";
+      };
 
 artifacts:
   # upload our archive as an artifact so it is available to deploy
@@ -133,11 +139,11 @@ deploy:
   - provider: Environment
     name: Ec2
     on: 
-      branch: master
+      branch: bin
   - provider: Environment
     name: S3 Bucket
     on: 
-      branch: master
+      branch: bin
 
 # Loop and sleep querying the deployment status via the published REST API.
 #
