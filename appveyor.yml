@@ -1,0 +1,221 @@
+# Sample appveyor.yml to deploy artifacts to EC2 instances.
+#
+# You will need to setup the following in advance:
+# 1. A set of IAM credentials with access to EC2 and S3.
+# 2. A base 64 encoded payload for the EC2 instances containing the install command for Appveyor Deplyment Agent and key.
+# 3. A bearer token for the Appveyor REST api.
+# 4. The details of an S3 bucket to deploy to after completing the EC2 testing.
+# 5. A named Appveyor Deployment Agent environment. 
+#
+# ToDo:
+# 1. Add notifications via Slack.
+# 2. Do our best to ensure we don't leave any orphaned Ec2 instances.
+# 3. Cleanup and refactor.
+# 4. Add more complete test harness for actuall installation of the artifacts on the test EC2 instances.
+# 5. Check git branch and only run the Ec2 deploy/test cycle on master/release/whatever.
+#
+# Note: 
+# As a POC this is building a Rust project using free tier AWS so ignore the details for the install/test/after_test sections.
+
+# Rust needs at least Visual Studio 2013 Appveyor OS for MSVC targets.
+os: Visual Studio 2015
+
+# Setup some encrypted keys for AWS access etc.
+environment:
+  aws_id:
+    secure: Y7Y8RtcP7vFH/IFMO+zsouVOwOijq2NxmUhSz+dnEHU=
+  aws_key: 
+    secure: Vp0uxHxQJVBJvpiE5N+uRI5kFLdGfiUrc7W8BtT8sJrtzC8wtRxE7vRJlT02R5Q5
+  av_api_token:
+    secure: QLxR/TZtTMzGVOJjON8g3f0Cgj7IEAViSRuVZ3LR6HY=
+  payload:
+    secure: vhhT2Vk2L6FD6ARS0mXVJHZx/xoXAHjMtvhof6ghOe30MT5QUhqiG5CNlQH/LMw7uiuH/8XpYe9HbOlcteSPa0yx890zrHiNEamq6D4Pf/L6r89GI+IzSwt9DVHYGI3WtXZ2PS4DkO1Pjk7zmSo5gJK4WOeNAPV8uFZMkraluYUMOm18G8BKMr3twiGiltmLvkmyxREE5rkwpyfEykVBornLsVm9jJcBvOCufh3TO36KhMq6Zx53v7BqAoTp/KR0QHQCTMilWR6FRVw1peKYY5u5VMUJDqnlMpo0ep3UUnbrIOiqikcow2dMhWmhqxkkgN6L6QDb49oKNgLQMAWBU86rv/GcsK/eP8MKGE5blzhYEtf6kER+JpRN7BBzS4bQ9AO5GcgVZIHk2sKrg2R0YWxex8Ez9ljGRpKhloZI9XoHcZTcO/Gkww6rEKV4o2plblbsPTvn9ADs9DbAxdim/vZdB0HEU3lTRIv3DoMbIaNCssRmg29eP3+bm8hJrRR4e8Vg49BhC91KuHL8aCYCMYm5Thfu6kmv/PgqhdsuWnsAbRRksmLPU0ICLdGJXZgST1N9+J9EPVl7sfuvXHWMjifVH19Y3+ri4iFQdBFbKH7tkvDxlaIpgrj1uVxih5Rm8l3IDe9DPvMyOT/xZ+5p0jpr6rAl3NBM/Cv9x0RwgexSHBMdWwZMxm9DNYtchwgoy84HF84K7Rfa/q38rYzNeQ==
+  s3bucket: rst-test
+  aws_region: eu-west-1
+  ec2instType: t2.micro
+  testBranch: bin
+  projectUri: 'https://ci.appveyor.com/api/environments/9629/deployments'
+  matrix:
+    - channel: stable
+      target: x86_64-pc-windows-msvc
+
+# Install the rust versions required by the matrix.
+install:
+- ps: .\appveyor_rust_install.ps1
+
+## Build Script ##
+
+# This chunk is a Rust project with some tests, details can be ignored.
+# Actual project would have different artifacts etc.
+
+# 'cargo test' takes care of building for us, so disable Appveyor's build stage. This prevents
+# the "directory does not contain a project or solution file" error.
+build: false
+
+# Run some tests
+test_script:
+  - cmd: cargo test --verbose
+
+after_test:
+  - cmd: cargo build --release # build release
+  - cmd: 7z a wol.zip target\release\wol.exe # zip it up
+  - cmd: 7z a service.zip "service\*" # zip it up
+  - cmd: 7z a service.zip deploy.ps1 # zip it up
+  - cmd: 7z a service.zip before-deploy.ps1 # zip it up
+  - cmd: 7z a service.zip disableCertValidate.dll
+  - ps: >-
+      if([String]::IsNullOrEmpty($env:APPVEYOR_PULL_REQUEST_NUMBER) -eq $false){
+        Echo $env:APPVEYOR_PULL_REQUEST_NUMBER;
+        Echo $([String]::IsNullOrEmpty($env:APPVEYOR_PULL_REQUEST_NUMBER));
+      } else {
+        Echo "No PR number found";
+      };
+
+artifacts:
+  # upload our archive as an artifact so it is available to deploy
+  - path: wol.zip
+    name: wol
+  - path: service.zip
+    name: service
+
+# Before we attempt an environment based deploy we need to spin up a selection of EC2 instances.
+#
+# The workflow looks like:
+# 1. Set some AWS credentials.
+# 2. Spin up selection of EC2 instances and record the instance ID.
+# 3. Loop until each instance reports status "ok".
+before_deploy:
+    # Install AWS client for PS.
+  - cmd: choco install awstools.powershell -y
+    # Set AWS credentials, send run instance request for each AMI we want and record the instance ID.
+  - ps: >-
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          $awsAmis = @("ami-f6ef7185");
+          $runningEc2 = New-Object System.Collections.ArrayList;
+
+          Set-AWSCredentials -AccessKey $env:aws_id -SecretKey $env:aws_key -StoreAs default;
+
+          Echo "Launching EC2 instances...";
+
+          foreach ($ami in $awsAmis) {
+              $instid = New-EC2Instance `
+                  -Region $env:aws_region `
+                  -ImageId $ami `
+                  -MinCount 1 `
+                  -MaxCount 1 `
+                  -KeyName Default `
+                  -InstanceProfile_Name Build `
+                  -InstanceType $env:ec2instType `
+                  -UserData $env:payload | Select -Exp instances;
+              $runningEc2.Add($instid[0].instanceid);
+          };
+        }; 
+    # Wait until total running instances with our IDs + status ok equals the number of instances launched.
+  - ps: >-
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          Echo "Waiting for all deployment instances to enter the running state...";
+          $upSleep = 30;
+
+          while ((Get-EC2InstanceStatus -Region $env:aws_region |
+                Where { $_.InstanceId -In $runningEc2 } |
+                Select -Exp Status |
+                Select -Exp Status |
+                Select -Exp Value |
+                Group |
+                Where { $_.Name -eq "ok" } |
+                Select -Exp Count) -ne $runningEc2.Count) {
+              Echo "Not all instances have completed spin up, sleeping for $upSleep...";
+              Start-Sleep -s $upSleep;
+          };
+          Echo "Done!";
+      };
+
+# This process is async to the rest of the build, don't expect a failed deploy to fail the build.
+# 
+# Notes:
+# 1. The environment will need setting up in advance via the web interface.
+# 2. The deployment agent is installed on each EC2 instance when we spin it up via the User Data param.
+deploy:
+    # Deploy using the Appveyor Agent installed on each EC2 instance.
+  - provider: Environment
+    name: Ec2
+    on: 
+      branch: bin
+  - provider: Environment
+    name: S3 Bucket
+    on: 
+      branch: bin
+
+# Loop and sleep querying the deployment status via the published REST API.
+#
+# Cleanup our EC2 instances. Loop and sleep until they all disappear from instance status.
+#
+# ToDo:
+# 1. If we fail then notify (slack) and break out of the loop.
+# 2. If we succeed deploy to S3 using AWS Powershell and notify (slack) and break.
+#
+# Notes:
+# 1. The REST API bearer token will need encrypting and adding to this file.
+# 2. The IAM identity used by AWS Powershell will need access to some S3 functionality.
+# 3. It may be a good idea to encrypt the S3 bucket name as they are not namespaced.
+# 4. Notification will probably need to be sent directly from here with a Powershell Slack library.
+after_deploy:
+  - ps: >-
+      if($env:APPVEYOR_REPO_BRANCH -eq $env:testBranch) {
+          $headers = @{
+              "Authorization" = "Bearer $env:av_api_token"
+              "Content-type" = "application/json"
+          };
+      
+          Echo "Checking deployment status for build $env:APPVEYOR_BUILD_ID...";
+
+          :loop while($true) {
+              switch(Invoke-RestMethod -Uri $env:projectUri -Headers $headers -Method Get |
+                select -exp deployments | 
+                select -exp deployment |  
+                where { $_.build.buildId -eq $env:APPVEYOR_BUILD_ID } |
+                select -exp status)
+                  {
+                      "success" { 
+                          Echo "Deployment complete, uploading artifacts to s3...";
+                          break loop;
+                      }
+                      "failed" { 
+                          Echo "Deployment failed...";
+                          break loop;
+                      }
+                      "running" {
+                          Echo "Deployment running...";
+                          Start-Sleep -s 20;
+                      }
+                      default { 
+                          Echo "Waitng for feedback...";
+                          Start-Sleep -s 10;
+                      }
+                  };
+          };
+
+          Echo "Killing deployment instances...";
+          $downSleep = 5;
+
+          foreach ($running in $runningEc2) {
+              Remove-EC2Instance -Region $env:aws_region -InstanceId $running -Force;
+          };
+
+          Echo "Waiting for all deployment instances to disappear...";
+
+          while ((Get-EC2InstanceStatus -Region $env:aws_region |
+                Where { $_.InstanceId -In $runningEc2 }) -ne $null) {
+              Echo "Not all instances have been terminated, sleeping for $downSleep...";
+              Start-Sleep -s $downSleep;
+          };
+
+          Echo "Done!";
+      };
+ 
+#                          foreach($artifact in $artifacts.Values) {
+#                              Write-S3Object `
+#                                -Region $env:aws_region `
+#                                -BucketName $env:s3bucket `
+#                                -File $artifact.path;
+#                          };
